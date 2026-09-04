@@ -1,15 +1,24 @@
 'use strict';
 /**
- * DUM-E brand mark — a robot arm on the arc-reactor blue tile.
+ * DUM-E brand mark — the arm that saved Tony, presenting the fire extinguisher.
  *
  * THE SVG IS THE SOURCE OF TRUTH. Every raster is generated from the same
  * geometry, never traced back from a PNG. Adapted from the upstream mark
  * pipeline (tools/make-logo.cjs in Munder Difflin): same run-merged <rect>
  * approach, same rasteriser — new sprite, new palette.
  *
+ * TWO-TIER ICON SYSTEM (real icon sets do this — one pose cannot read at
+ * 16px AND at 1024px):
+ *   FULL    — the articulated arm in its diagonal "reaching up to help"
+ *             pose, fire extinguisher held high in the claw. Used ≥48px.
+ *   COMPACT — the extinguisher clasped by two claw fingers, zoomed tight.
+ *             Used at 16/32px where the full pose would smear.
+ *
  * Writes, from one source:
- *   src/renderer/src/brand/logo.svg   source of truth (full bleed, ink border)
- *   src/renderer/src/brand/logo.png  512 — in-app favicon + splash
+ *   src/renderer/src/brand/logo.svg    source of truth (full mark, ink border)
+ *   src/renderer/src/brand/logo.png   512 — in-app favicon + splash
+ *   build/icon.svg / icon.png / icon.ico  + build/icon.iconset/ (10 pngs;
+ *     macOS .icns: iconutil -c icns build/icon.iconset -o build/icon.icns)
  *
  *   node tools/make-logo.cjs
  */
@@ -23,105 +32,138 @@ const BRAND = path.join(ROOT, 'src/renderer/src/brand');
 fs.mkdirSync(BRAND, { recursive: true });
 
 // ── palette ───────────────────────────────────────────────────────────────
-const GROUND = [38, 111, 214];   // #266FD6 — arc-reactor blue
-const GOLD   = [244, 211, 94];   // #F4D35E — DUM-E gold accent
-const WHITE  = [250, 248, 244];
-const INK    = [26, 19, 32];     // #1A1320
+const GROUND = [38, 111, 214];   // #266FD6 — arc-reactor blue tile
+const GOLD   = [244, 211, 94];   // #F4D35E — DUM-E gold accent (joints, bands)
+const WHITE  = [250, 248, 244];  // glints
+const INK    = [26, 19, 32];     // #1A1320 — the arm's silhouette
+const EXT    = [214, 69, 65];    // #D64541 — extinguisher red
+const EXT_D  = [150, 45, 42];   // extinguisher base cap
 
 const BORDERS = { ink: [26, 19, 32], warm: [12, 56, 122] };
 
-// Tile geometry (same ratios as upstream so the mark lands in the same family)
+// Tile geometry — square rounded tile with a thick ink border (same family
+// as every DUM-E surface: hard edge, no gradient).
 const R_RADIUS = 144 / 800;
 const R_STROKE = 26 / 800;
 const FRAMES = { mark: 0, icon: 0 };
 
-// ── sprite ────────────────────────────────────────────────────────────────
-// DUM-E: a chunky robot bust, hand-authored 18×28 pixel grid.
-// Rows 1-12 head (screen-face + antenna), 13-16 neck, 17-24 chest + arm stub,
-// 25-28 base. Drawn as [x, y] runs so every pixel stays square.
-const SW = 18, SH = 28;
+// ── sprites ────────────────────────────────────────────────────────────────
+/** One rect per contiguous horizontal run: [x, y, len, color] — later runs
+ *  overwrite earlier ones, so accents (pins, bands, glints) paint on top of
+ *  the body runs listed before them. */
 
-/** One rect per contiguous horizontal run: [x, y, len, [r,g,b]] */
-const RUNS = [
-  // antenna
-  [8, 1, 2, INK],
-  [9, 0, 1, GOLD],
-  // head shell
-  [4, 2, 10, INK],
-  [3, 3, 12, INK],
-  [3, 4, 12, INK],
-  // face screen
-  [5, 5, 8, WHITE],
-  [4, 6, 10, WHITE],
-  [4, 7, 10, WHITE],
-  [4, 8, 10, WHITE],
-  [5, 9, 8, WHITE],
-  // eyes (blink-free, dead-centre)
-  [6, 6, 2, INK],
-  [10, 6, 2, INK],
-  // mouth grille
-  [7, 8, 4, INK],
-  // head shell bottom
-  [3, 10, 12, INK],
-  [4, 11, 10, INK],
-  // neck
-  [6, 12, 6, INK],
-  [7, 13, 4, INK],
-  // shoulders
-  [2, 14, 14, INK],
-  [1, 15, 16, INK],
-  [1, 16, 16, INK],
-  // chest plate with arc-reactor glow
-  [2, 17, 14, INK],
-  [7, 18, 4, GOLD],
-  [7, 19, 4, GOLD],
-  [6, 20, 6, GOLD],
-  [6, 21, 6, GOLD],
-  [7, 22, 4, GOLD],
-  [2, 17, 3, WHITE], [13, 17, 3, WHITE],
-  [2, 18, 2, WHITE], [14, 18, 2, WHITE],
-  [2, 19, 2, WHITE], [14, 19, 2, WHITE],
-  [2, 20, 2, WHITE], [14, 20, 2, WHITE],
-  [2, 21, 2, WHITE], [14, 21, 2, WHITE],
-  [2, 22, 2, WHITE], [14, 22, 2, GOLD],
-  // base
-  [2, 23, 14, INK],
-  [3, 24, 12, INK],
-  [4, 25, 10, INK],
-  [5, 26, 8, INK]
+// FULL — 21×28 grid. Composition, bottom-left → top-right: base block →
+// upper-arm staircase → elbow (gold pin) → forearm staircase → vertical claw
+// with gold wrist pin → top hook reaching right → the extinguisher (red
+// cylinder, gold band, ink handle) clasped high.
+const FULL_RUNS = [
+  // fire extinguisher (cols 17-19, the prize held high)
+  [17, 1, 2, INK],            // top handle
+  [17, 2, 2, INK],
+  [17, 3, 3, EXT],            // body
+  [17, 4, 3, EXT],
+  [17, 5, 3, EXT],
+  [17, 6, 3, GOLD],           // the gold band every extinguisher has
+  [17, 7, 3, EXT],
+  [17, 8, 3, EXT],
+  [17, 9, 3, EXT],
+  [17, 10, 3, EXT_D],         // base cap
+  [17, 4, 1, WHITE],          // glint on the cylinder
+  // claw: vertical block + top hook + under-finger clasping the extinguisher
+  [12, 10, 3, INK],
+  [12, 11, 3, INK],
+  [12, 12, 3, INK],
+  [12, 13, 3, INK],
+  [12, 14, 3, INK],
+  [12, 15, 3, INK],
+  [13, 9, 4, INK],            // hook from above: reaches right, touches the cylinder
+  [14, 10, 3, INK],           // under-finger: wraps the base cap from the side
+  [13, 13, 1, GOLD],          // wrist pin
+  // forearm: 45° staircase, 3px beam
+  [11, 15, 3, INK],
+  [10, 16, 3, INK],
+  [9, 17, 3, INK],
+  [8, 18, 3, INK],
+  [11, 16, 1, WHITE],         // glint on the beam
+  // elbow joint
+  [6, 19, 3, INK],
+  [6, 20, 3, INK],
+  [6, 21, 3, INK],
+  [7, 20, 1, GOLD],           // elbow pin
+  // upper arm: staircase down-left
+  [5, 21, 3, INK],
+  [4, 22, 3, INK],
+  [3, 23, 3, INK],
+  [2, 24, 3, INK],
+  // base block with rivets
+  [1, 24, 6, INK],
+  [1, 25, 6, INK],
+  [1, 26, 6, INK],
+  [1, 27, 6, INK],
+  [2, 26, 1, GOLD],           // rivets
+  [5, 26, 1, GOLD],
 ];
 
-function buildGrid() {
+// COMPACT — 14×14 grid. The extinguisher PINCHED by the claw: the top fingers
+// press into the cylinder's edges (overlapping them, a real grip), then
+// release and the tips curl away — zoomed tight for the small sizes.
+const COMPACT_RUNS = [
+  [6, 0, 2, INK],             // handle
+  [6, 1, 2, INK],
+  [5, 2, 4, EXT],            // cylinder (chunky: 4px wide)
+  [5, 3, 4, EXT],
+  [5, 4, 4, EXT],
+  [5, 5, 4, GOLD],           // band
+  [5, 6, 4, EXT],
+  [5, 7, 4, EXT],            // rows 7-8 are the pinch zone (fingers overlap)
+  [5, 8, 4, EXT_D],          // base cap — resting in the open claw
+  [5, 3, 1, WHITE],          // glint
+  // the pinch: fingers press INTO the cylinder's side pixels (paint over)
+  [4, 7, 2, INK], [8, 7, 2, INK],
+  [4, 8, 2, INK], [8, 8, 2, INK],
+  [3, 9, 2, INK], [9, 9, 2, INK],   // release — adjacent, no longer biting
+  // tips curl away and down
+  [2, 10, 2, INK], [10, 10, 2, INK],
+  [2, 11, 2, INK], [10, 11, 2, INK],
+  [2, 12, 2, INK], [10, 12, 2, INK],
+  [6, 13, 2, GOLD],          // wrist pin below
+];
+
+function buildGrid(runs, gw, gh) {
   const cells = [];
-  for (const [x, y, len, c] of RUNS) {
+  for (const [x, y, len, c] of runs) {
     for (let i = 0; i < len; i++) cells.push({ gx: x + i, gy: y, c });
   }
   const xs = cells.map((c) => c.gx), ys = cells.map((c) => c.gy);
   return {
-    gw: SW, gh: SH, cells,
+    gw, gh, cells,
     x0: Math.min(...xs), x1: Math.max(...xs) + 1,
     y0: Math.min(...ys), y1: Math.max(...ys) + 1
   };
 }
 
-/** Place the grid in the tile at an INTEGER scale, bleeding off the bottom. */
-function layout(N, grid, frame) {
+// ── layout ─────────────────────────────────────────────────────────────────
+// Integer pixel scale (crisp!), then optical centering: horizontal geometric,
+// vertical biased 1% up (icons read bottom-heavy if centered exactly).
+function layout(N, grid, frame, fill, fit) {
   const margin = N * FRAMES[frame];
   const tile = { x: margin, y: margin, w: N - 2 * margin, h: N - 2 * margin };
   tile.r = tile.w * R_RADIUS;
   const stroke = tile.w * R_STROKE;
-  const scale = Math.max(1, Math.round((tile.w * (140 / 240)) / (grid.x1 - grid.x0)));
-  const drawnW = (grid.x1 - grid.x0) * scale;
+  const drawnW = grid.x1 - grid.x0, drawnH = grid.y1 - grid.y0;
+  const byW = Math.round((tile.w * fill) / drawnW);
+  const byH = Math.floor((tile.h * fit) / drawnH);
+  const scale = Math.max(1, Math.min(byW, byH));
   return {
     tile, stroke, scale,
-    ox: Math.round(tile.x + (tile.w - drawnW) / 2 - grid.x0 * scale),
-    oy: Math.round(tile.y + tile.h * (12 / 240) - grid.y0 * scale)
+    ox: Math.round(tile.x + (tile.w - drawnW * scale) / 2 - grid.x0 * scale),
+    oy: Math.round(tile.y + (tile.h - drawnH * scale) / 2 - tile.h * 0.01 - grid.y0 * scale)
   };
 }
 
 // ── SVG ───────────────────────────────────────────────────────────────────
-function buildSvg(N, grid, frame, border) {
-  const L = layout(N, grid, frame);
+function buildSvg(N, grid, frame, border, fill, fit) {
+  const L = layout(N, grid, frame, fill, fit);
   const t = L.tile, s = L.stroke;
   const rx = t.x + s / 2, ry = t.y + s / 2, rw = t.w - s, rh = t.h - s, rr = t.r - s / 2;
   const body = grid.cells.map((c) => {
@@ -129,7 +171,7 @@ function buildSvg(N, grid, frame, border) {
     return `    <rect x="${x}" y="${y}" width="${L.scale}" height="${L.scale}" fill="${hex(c.c)}"/>`;
   }).join('\n');
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${N}" height="${N}" viewBox="0 0 ${N} ${N}" shape-rendering="crispEdges">
-  <!-- DUM-E — the brand mark. Generated by tools/make-logo.cjs; edit that, not this. -->
+  <!-- DUM-E — the arm presenting the fire extinguisher. Generated by tools/make-logo.cjs; edit that, not this. -->
   <title>DUM-E</title>
   <defs>
     <clipPath id="tile">
@@ -171,11 +213,12 @@ function chunk(type, data) {
 }
 
 function encodePng(N, rgba) {
+  const buf = Buffer.from(rgba.buffer, rgba.byteOffset, rgba.byteLength);
   const stride = N * 4 + 1;
   const raw = Buffer.alloc(N * stride);
   for (let y = 0; y < N; y++) {
     raw[y * stride] = 0;
-    rgba.copy(raw, y * stride + 1, y * N * 4, (y + 1) * N * 4);
+    buf.copy(raw, y * stride + 1, y * N * 4, (y + 1) * N * 4);
   }
   const ihdr = Buffer.alloc(13);
   ihdr.writeUInt32BE(N, 0); ihdr.writeUInt32BE(N, 4);
@@ -198,8 +241,8 @@ function sdRoundRect(px, py, x, y, w, h, r) {
 
 const SS = 4;
 
-function rasterise(N, grid, frame, border) {
-  const L = layout(N, grid, frame);
+function rasterise(N, grid, frame, border, fill, fit) {
+  const L = layout(N, grid, frame, fill, fit);
   const t = L.tile, s = L.stroke;
   const rx = t.x + s / 2, ry = t.y + s / 2, rw = t.w - s, rh = t.h - s, rr = t.r - s / 2;
 
@@ -209,7 +252,7 @@ function rasterise(N, grid, frame, border) {
     return at.get(gy * grid.gw + gx) ?? null;
   };
 
-  const out = Buffer.alloc(N * N * 4);
+  const out = new Uint8ClampedArray(N * N * 4);
   for (let y = 0; y < N; y++) {
     for (let x = 0; x < N; x++) {
       let cov = 0, ink = 0, rSum = 0, gSum = 0, bSum = 0;
@@ -255,25 +298,28 @@ function buildIco(pngs) {
   return Buffer.concat([dir, ...entries, ...bodies]);
 }
 
-// ── run ───────────────────────────────────────────────────────────────────
-const grid = buildGrid();
+// ── sprite registry + emission ─────────────────────────────────────────────
+// Full pose at big sizes; the extinguisher-clasp crop where the pose would
+// smear (16/32px favicons and taskbar-dust sizes).
+const FULL = { grid: buildGrid(FULL_RUNS, 21, 28), fill: 0.72, fit: 0.94 };
+const COMPACT = { grid: buildGrid(COMPACT_RUNS, 14, 14), fill: 0.85, fit: 0.95 };
+const spriteFor = (size) => (size >= 48 ? FULL : COMPACT);
+
 const wrote = [];
 const write = (rel, buf) => {
   fs.writeFileSync(path.join(ROOT, rel), buf);
   wrote.push(`${rel.padEnd(40)} ${(buf.length / 1024).toFixed(1)} KB`);
 };
 
-write('src/renderer/src/brand/logo.svg', Buffer.from(buildSvg(1024, grid, 'mark', BORDERS.ink)));
-write('src/renderer/src/brand/logo.png', rasterise(512, grid, 'mark', BORDERS.ink));
+write('src/renderer/src/brand/logo.svg', Buffer.from(buildSvg(1024, FULL.grid, 'mark', BORDERS.ink, FULL.fill, FULL.fit)));
+write('src/renderer/src/brand/logo.png', rasterise(512, FULL.grid, 'mark', BORDERS.ink, FULL.fill, FULL.fit));
 
-// App icons. The .icns needs macOS `iconutil` — on other platforms we write the
-// iconset PNGs so a mac can convert with:
-//   iconutil -c icns build/icon.iconset -o build/icon.icns
-write('build/icon.svg', Buffer.from(buildSvg(1024, grid, 'mark', BORDERS.ink)));
-write('build/icon.png', rasterise(1024, grid, 'mark', BORDERS.ink));
-write('build/icon.ico', buildIco([16, 32, 48, 64, 128, 256].map((size) => ({
-  size, data: rasterise(size, grid, 'mark', BORDERS.ink)
-}))));
+write('build/icon.svg', Buffer.from(buildSvg(1024, FULL.grid, 'mark', BORDERS.ink, FULL.fill, FULL.fit)));
+write('build/icon.png', rasterise(1024, FULL.grid, 'mark', BORDERS.ink, FULL.fill, FULL.fit));
+write('build/icon.ico', buildIco([16, 32, 48, 64, 128, 256].map((size) => {
+  const sp = spriteFor(size);
+  return { size, data: rasterise(size, sp.grid, 'mark', BORDERS.ink, sp.fill, sp.fit) };
+})));
 
 const setDir = path.join(ROOT, 'build/icon.iconset');
 fs.rmSync(setDir, { recursive: true, force: true });
@@ -283,7 +329,8 @@ for (const [name, size] of [
   ['icon_128x128', 128], ['icon_128x128@2x', 256], ['icon_256x256', 256],
   ['icon_256x256@2x', 512], ['icon_512x512', 512], ['icon_512x512@2x', 1024]
 ]) {
-  fs.writeFileSync(path.join(setDir, `${name}.png`), rasterise(size, grid, 'mark', BORDERS.ink));
+  const sp = spriteFor(size);
+  fs.writeFileSync(path.join(setDir, `${name}.png`), rasterise(size, sp.grid, 'mark', BORDERS.ink, sp.fill, sp.fit));
 }
 wrote.push('build/icon.iconset/            (10 pngs, mac: iconutil -c icns)');
 
