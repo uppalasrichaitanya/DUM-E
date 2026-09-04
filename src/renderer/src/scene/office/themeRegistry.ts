@@ -22,9 +22,11 @@ import {
   type OfficeCharacterName,
 } from './cast';
 
-import officeTilesetUrl from '@/assets/tilesets/office-tileset.png?url';
-import a5FloorsWallsUrl from '@/assets/tilesets/a5-office-floors-walls.png?url';
-import interiorsUrl from '@/assets/tilesets/interiors.png?url';
+// Lab atlases — procedurally generated original art (tools/make-lab-tilesets.cjs),
+// same grid/gid layout the maps expect. No third-party tiles ship with DUM-E.
+import officeTilesetUrl from '@/assets/tilesets/lab-tileset.png?url';
+import a5FloorsWallsUrl from '@/assets/tilesets/lab-a5.png?url';
+import interiorsUrl from '@/assets/tilesets/lab-interiors.png?url';
 // .tmj is Tiled JSON; imported as raw text and parsed by the loader.
 import officeMapRaw from '@/assets/maps/office.tmj?raw';
 import brooklyn99MapRaw from '@/assets/maps/brooklyn99.tmj?raw';
@@ -145,7 +147,7 @@ export const OFFICE_THEME: ThemeConfig = {
   id: 'office',
   mapRaw: officeMapRaw,
   tilesets: [
-    // office-tileset.png — embedded in the map (firstgid 1); keep the map's copy.
+    // lab-tileset.png — embedded in the map (firstgid 1); keep the map's copy.
     { url: officeTilesetUrl, embedded: true },
     { url: a5FloorsWallsUrl, firstgid: 513, image: 'a5', imagewidth: 256, imageheight: 512, tilewidth: 16, tileheight: 16, columns: 16, tilecount: 512 },
     { url: interiorsUrl, firstgid: 1025, image: 'interiors', imagewidth: 256, imageheight: 1424, tilewidth: 16, tileheight: 16, columns: 16, tilecount: 1424 },
@@ -228,8 +230,8 @@ export const OFFICE_THEME: ThemeConfig = {
 export const BROOKLYN99_THEME: ThemeConfig = {
   id: 'brooklyn99',
   mapRaw: brooklyn99MapRaw,
-  // PLACEHOLDER: brooklyn99.tmj uses the office gid space, so the same atlases
-  // (office-tileset embedded @1, a5 @513, interiors @1025) resolve every tile.
+  // PLACEHOLDER: brooklyn99.tmj uses the office gid space, so the same lab
+  // atlases (lab-tileset embedded @1, lab-a5 @513, lab-interiors @1025) resolve every tile.
   tilesets: OFFICE_THEME.tilesets,
   primarySeatNames: [
     'desk-ceo',                                            // Captain Holt's glass office

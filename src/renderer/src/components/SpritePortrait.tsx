@@ -14,7 +14,7 @@ export interface SpritePortraitProps {
   background?: string;
 }
 
-/** Static standing portrait of an Office cast member (recolored LimeZu sprite). */
+/** Static standing portrait of a lab cast member (procedurally drawn robot). */
 export function SpritePortrait({
   character,
   scale = 2,
