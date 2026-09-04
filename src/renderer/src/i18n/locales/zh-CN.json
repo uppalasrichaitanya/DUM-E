@@ -502,7 +502,6 @@
     "folderFromSession": "已根据会话设置文件夹：{{path}}",
     "resumeNote": "将在所选文件夹中恢复该会话（Git 隔离已禁用）。",
     "provider": "提供商",
-    "providerAntigravity": "使用 Gemini 模型启动 Antigravity CLI（agy）",
     "providerCodex": "启动 Codex CLI（codex），不带 Claude 专属标志",
     "providerCustom": "运行任意命令——不带 Claude 专属标志",
     "model": "模型",
@@ -544,7 +543,7 @@
     "importHireDesc": "导入 hire 会从一个 .json 清单加载现成的智能体——它会填好下方所有字段供你检查。不点 生成 就不会启动任何东西。",
     "generateWithAI": "用 AI 生成一个…",
     "hideAIPrompt": "隐藏 AI 提示词",
-    "aiPromptHint": "把它复制到 Claude/ChatGPT/Gemini，填写底部的详细信息，然后把它的 JSON 回复保存为 .json 文件，在这里导入。",
+    "aiPromptHint": "把它复制到 Qwen/Claude/ChatGPT，填写底部的详细信息，然后把它的 JSON 回复保存为 .json 文件，在这里导入。",
     "copied": "已复制 ✓",
     "copyPrompt": "复制提示词",
     "importHireBtn": "导入 hire…",
@@ -559,7 +558,7 @@
   },
   "onboarding": {
     "titles": {
-      "persona": "欢迎来到 MUNDER DIFFLIN",
+      "persona": "欢迎来到 DUM-E",
       "welcome": "认识你的办公室",
       "home": "第 1 步，共 4 步 · HARNESS 主目录",
       "homePlain": "第 1 步，共 4 步 · 为应用找一个家",
@@ -572,7 +571,7 @@
     },
     "persona": {
       "headline": "一个 24/7 工作的你",
-      "body": "Munder Difflin 把你在用的 CLI 智能体变成你的克隆——一个经营着一屋子长期运行智能体、在你离开时持续工作的存在。它管理着围绕它们的一切：上下文、记忆、任务、触发器、环境、文件和集成。",
+      "body": "DUM-E 把你在用的 CLI 智能体变成你的克隆——一个经营着一屋子长期运行智能体、在你离开时持续工作的存在。它管理着围绕它们的一切：上下文、记忆、任务、触发器、环境、文件和集成。",
       "bodyLocal": " 一切都在本机运行。",
       "ask": "首先——你是谁？（我们会据此定制设置）",
       "technicalTitle": "我是技术人员",
@@ -587,8 +586,8 @@
       "features": {
         "engines": {
           "label": "十一大引擎，一间办公室",
-          "desc": "Claude Code、Codex、Grok、Kimi、Antigravity、Qwen、OpenCode、Crush、pi、Copilot 与 Cursor —— 在同一楼层并肩工作的实时智能体。",
-          "descPlain": "十一个 AI 助手 —— Claude、Codex、Cursor、Gemini、Grok 等 —— 在同一间共享办公室里并肩工作。"
+          "desc": "Qwen、Claude Code、Codex 与 OpenCode —— 在同一楼层并肩工作的实时智能体。",
+          "descPlain": "四个 AI 助手 —— Qwen、Claude Code、Codex 和 OpenCode —— 在同一间共享实验室里并肩工作。"
         },
         "clone": {
           "label": "{{godName}} 就是你的克隆",
@@ -620,10 +619,7 @@
     "providerBlurb": {
       "claude": "Claude Code — Anthropic",
       "codex": "Codex — OpenAI",
-      "antigravity": "Antigravity — Google Gemini",
-      "qwen": "Qwen — 在你的机器上运行本地 Qwen 模型",
-      "gemini": "Gemini CLI —— Google Gemini",
-      "cursor": "Cursor Agent CLI —— 使用你的 Cursor 额度（Luna、Composer 等）"
+      "qwen": "Qwen — 在你的机器上运行本地 Qwen 模型"
     },
     "home": {
       "descPlain": "为应用创建一个新的空文件夹作为家。应用记住的一切——它自己的设置和你智能体的记忆——都存放在这里。像 ~/HarnessAgents 这样的地方就很合适。如果它不存在，我们会为你创建。",
@@ -637,8 +633,8 @@
     "orchestrator": {
       "descPlain": "{{godName}} 就是你的克隆——他读取你的请求，拆成任务，分给合适的智能体。他是楼层的老板；而你仍然是他的老板。选择用什么 AI 引擎驱动他。",
       "desc": "{{godName}} 就是你的克隆——你刚认识的那层楼的老板。他分流你的请求、分配任务、管理团队，同时把真正需要你的情况升级上来。选择驱动他的引擎和模型；给他一个更长上下文、更强能力的模型。",
-      "cliAgentPlain": "一个<strong>CLI 智能体</strong>是运行在你电脑上的 AI 编程助手 —— 常见的有 Claude Code（Anthropic）、Codex（OpenAI）和 Antigravity（Google Gemini）。<strong>你的克隆体</strong>是常驻运行、打理整个办公室的那一个。我们推荐使用 Opus 4.8（1M）的 Claude Code。其他引擎之后可以随时添加或切换。",
-      "cliAgent": "每个选项都是一个<strong>CLI 引擎</strong>（Claude Code、Codex、Antigravity/Gemini，或本地代理如 Qwen）。标记为 INSTALLED 的引擎已在本机就绪；INSTALLS ON FIRST RUN 表示应用会在 {{godName}} 首次启动时进行安装。<strong>你的克隆体</strong>（{{godName}}）是统筹整个 hive 的引擎。推荐：Claude Code · Opus 4.8 · 1M。其他提供方之后可按智能体逐一接入。",
+      "cliAgentPlain": "一个<strong>CLI 智能体</strong>是运行在你电脑上的 AI 编程助手 —— 常见的有 Qwen Code（阿里巴巴）、Claude Code（Anthropic）和 Codex（OpenAI）。<strong>你的克隆体</strong>是常驻运行、打理整个实验室的那一个。我们推荐 Qwen Code（qwen3-coder-plus）。其他引擎之后可以随时添加或切换。",
+      "cliAgent": "每个选项都是一个<strong>CLI 引擎</strong>（Qwen Code、Claude Code、Codex、OpenCode，或本地端点）。标记为 INSTALLED 的引擎已在本机就绪；INSTALLS ON FIRST RUN 表示应用会在 {{godName}} 首次启动时进行安装。<strong>你的克隆体</strong>（{{godName}}）是统筹整个 hive 的引擎。推荐：Qwen Code · qwen3-coder-plus。其他提供方之后可按智能体逐一接入。",
       "recommended": "推荐",
       "model": "模型",
       "modelNote": "这只设置 {{godName}} 的引擎。之后你可以在每个智能体上运行其他提供商。"
@@ -794,7 +790,7 @@
   },
   "aiEngines": {
     "providers": "AI 引擎提供商（BYOK）",
-    "providersDesc": "OpenCode、Crush、pi.dev 和 Qwen 引擎的 API 密钥与本地端点。密钥只写存储（加密落盘；之后不再显示），且仅在那些引擎启动时使用。Claude Code 和 Codex 使用各自的登录。",
+    "providersDesc": "OpenCode 和 Qwen 引擎的 API 密钥与本地端点。密钥只写存储（加密落盘；之后不再显示），且仅在那些引擎启动时使用。Claude Code 和 Codex 使用各自的登录。",
     "apiKeys": "API 密钥",
     "setCheck": "已设置 ✓",
     "keyStoredPlaceholder": "••••••••（已存储——输入以替换）",
@@ -805,7 +801,7 @@
     "localEndpoint": "本地端点 · 默认模型（按引擎）",
     "defaultModelPlaceholder": "默认模型（提供商/模型）",
     "runningOpenModels": "要跑开源模型？分步指南：",
-    "runOnOpenModels": "在开源模型上运行 Munder Difflin",
+    "runOnOpenModels": "在开源模型上运行 DUM-E",
     "setUpMacMini": "在 Mac Mini 上配置",
     "autoModeCaveat": "⚠ 在自动模式下，这些引擎以完整的文件系统 + shell 访问权限运行（无沙箱）——就像 Claude 的绕过模式。把自动模式关掉（通用页）即可让它们先询问。与真实模型调用的端到端实测仍在等待你的密钥 / 本地 LLM。"
   },
@@ -855,7 +851,7 @@
     "downloadingHeadline": "正在下载 v{{version}}",
     "downloadingDetail": "已完成 {{percent}}%。你可以继续工作；重启由你自己决定。",
     "downloadedHeadline": "v{{version}} 已就绪，可安装",
-    "downloadedDetail": "重启 Munder Difflin 以完成从 v{{v}} 的更新。",
+    "downloadedDetail": "重启 DUM-E 以完成从 v{{v}} 的更新。",
     "restartBtn": "重启以更新",
     "manualDetail": "此安装无法自行更新——请从发布页面下载。",
     "manualDetailReason": "此安装无法自行更新（{{reason}}）——请从发布页面下载。",
@@ -882,7 +878,7 @@
     "webhooks": "Webhook",
     "webhooksBlurb": "让外部系统把工作投进来。",
     "organisation": "组织",
-    "organisationBlurb": "让队友的 Munder Difflin 给你的发消息。"
+    "organisationBlurb": "让队友的 DUM-E 给你的发消息。"
   },
   "orgSection": {
     "acceptMessages": "接受来自你组织的消息",

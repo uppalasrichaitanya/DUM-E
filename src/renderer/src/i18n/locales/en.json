@@ -502,7 +502,6 @@
     "folderFromSession": "folder set from session: {{path}}",
     "resumeNote": "Will resume this session in the chosen folder (git isolation disabled).",
     "provider": "Provider",
-    "providerAntigravity": "Spawn the Antigravity CLI (agy) with a Gemini model",
     "providerCodex": "Spawn the Codex CLI (codex) without Claude-only flags",
     "providerCustom": "Run any command — no Claude-only flags",
     "model": "Model",
@@ -544,7 +543,7 @@
     "importHireDesc": "Import hire loads a ready-made agent from a .json manifest — it fills in every field below for you to review. Nothing spawns until you hit spawn.",
     "generateWithAI": "generate one with AI…",
     "hideAIPrompt": "hide AI prompt",
-    "aiPromptHint": "Copy this into Claude/ChatGPT/Gemini, fill in the details at the bottom, then save its JSON reply as a .json file and import it here.",
+    "aiPromptHint": "Copy this into Qwen/Claude/ChatGPT, fill in the details at the bottom, then save its JSON reply as a .json file and import it here.",
     "copied": "copied ✓",
     "copyPrompt": "copy prompt",
     "importHireBtn": "import hire…",
@@ -559,7 +558,7 @@
   },
   "onboarding": {
     "titles": {
-      "persona": "WELCOME TO MUNDER DIFFLIN",
+      "persona": "WELCOME TO DUM-E",
       "welcome": "MEET YOUR OFFICE",
       "home": "STEP 1 OF 4 · HARNESS HOME",
       "homePlain": "STEP 1 OF 4 · A HOME FOR THE APP",
@@ -572,7 +571,7 @@
     },
     "persona": {
       "headline": "A CLONE OF YOU, WORKING 24/7",
-      "body": "Munder Difflin turns the CLI agent you already use into a clone of you — one that runs an office of long-running agents and keeps working while you're away. It manages everything around them: context, memory, tasks, triggers, environment, files, and integrations.",
+      "body": "DUM-E turns the CLI agent you already use into a clone of you — one that runs an office of long-running agents and keeps working while you're away. It manages everything around them: context, memory, tasks, triggers, environment, files, and integrations.",
       "bodyLocal": " Everything runs on this machine.",
       "ask": "FIRST — WHO ARE YOU? (we'll tailor the setup)",
       "technicalTitle": "I'M TECHNICAL",
@@ -587,8 +586,8 @@
       "features": {
         "engines": {
           "label": "ELEVEN ENGINES, ONE OFFICE",
-          "desc": "Claude Code, Codex, Grok, Kimi, Antigravity, Qwen, OpenCode, Crush, pi, Copilot & Cursor — live agents on one floor.",
-          "descPlain": "Eleven AI assistants — Claude, Codex, Cursor, Gemini, Grok and more — working side by side in one shared office."
+          "desc": "Qwen, Claude Code, Codex & OpenCode — live agents on one floor.",
+          "descPlain": "Four AI assistants — Qwen, Claude Code, Codex and OpenCode — working side by side in one shared lab."
         },
         "clone": {
           "label": "{{godName}} IS YOUR CLONE",
@@ -620,10 +619,7 @@
     "providerBlurb": {
       "claude": "Claude Code — Anthropic",
       "codex": "Codex — OpenAI",
-      "antigravity": "Antigravity — Google Gemini",
-      "qwen": "Qwen — runs a local Qwen model on your machine",
-      "gemini": "Gemini CLI - Google Gemini",
-      "cursor": "Cursor Agent CLI — uses your Cursor credits (Luna, Composer, …)"
+      "qwen": "Qwen — runs a local Qwen model on your machine"
     },
     "home": {
       "descPlain": "Create a new, empty folder for the app to call home. Everything the app remembers — its own settings and your agents' memory — is stored here. Something like ~/HarnessAgents works well. We'll create it for you if it doesn't exist.",
@@ -637,8 +633,8 @@
     "orchestrator": {
       "descPlain": "{{godName}} is your clone — he reads your requests, breaks them into tasks, and hands them to the right agent. He's the boss of the floor; you're still the boss of him. Choose which AI engine powers him.",
       "desc": "{{godName}} is your clone — the boss of the floor you just met. He triages your requests, assigns tasks, and manages the team, while escalating anything that genuinely needs you. Pick the engine and model that power him; give him a longer-context, higher-capability model.",
-      "cliAgentPlain": "A <strong>CLI agent</strong> is an AI coding assistant that runs on your computer — popular ones are Claude Code (Anthropic), Codex (OpenAI) and Antigravity (Google Gemini). <strong>Your clone</strong> is the always-on one that runs your whole office. We recommend Claude Code on Opus 4.8 (1M). You can add or switch the others later.",
-      "cliAgent": "Each option is a <strong>CLI engine</strong> (Claude Code, Codex, Antigravity/Gemini, or a local proxy like Qwen). Engines marked INSTALLED are already on this machine; INSTALLS ON FIRST RUN means the app sets it up when {{godName}} first starts. <strong>Your clone</strong> ({{godName}}) is the engine that orchestrates the whole hive. Recommended: Claude Code · Opus 4.8 · 1M. Other providers can be wired per agent later.",
+      "cliAgentPlain": "A <strong>CLI agent</strong> is an AI coding assistant that runs on your computer — popular ones are Qwen Code (Alibaba), Claude Code (Anthropic) and Codex (OpenAI). <strong>Your clone</strong> is the always-on one that runs your whole lab. We recommend Qwen Code on qwen3-coder-plus. You can add or switch the others later.",
+      "cliAgent": "Each option is a <strong>CLI engine</strong> (Qwen Code, Claude Code, Codex, OpenCode, or a local endpoint). Engines marked INSTALLED are already on this machine; INSTALLS ON FIRST RUN means the app sets it up when {{godName}} first starts. <strong>Your clone</strong> ({{godName}}) is the engine that orchestrates the whole hive. Recommended: Qwen Code · qwen3-coder-plus. Other providers can be wired per agent later.",
       "recommended": "RECOMMENDED",
       "model": "Model",
       "modelNote": "This only sets {{godName}}'s engine. You can run other providers per agent later."
@@ -794,7 +790,7 @@
   },
   "aiEngines": {
     "providers": "AI ENGINE PROVIDERS (BYOK)",
-    "providersDesc": "API keys + local endpoints for the OpenCode, Crush, pi.dev and Qwen engines. Keys are stored write-only (encrypted at rest; never shown again) and used only when those engines spawn. Claude Code and Codex use their own login.",
+    "providersDesc": "API keys + local endpoints for the OpenCode and Qwen engines. Keys are stored write-only (encrypted at rest; never shown again) and used only when those engines spawn. Claude Code and Codex use their own login.",
     "apiKeys": "API KEYS",
     "setCheck": "set ✓",
     "keyStoredPlaceholder": "•••••••• (stored — type to replace)",
@@ -805,7 +801,7 @@
     "localEndpoint": "LOCAL ENDPOINT · DEFAULT MODEL (PER ENGINE)",
     "defaultModelPlaceholder": "default model (provider/model)",
     "runningOpenModels": "Running open models? Step-by-step guides:",
-    "runOnOpenModels": "run Munder Difflin on open models",
+    "runOnOpenModels": "run DUM-E on open models",
     "setUpMacMini": "set it up on a Mac Mini",
     "autoModeCaveat": "⚠ In auto mode these engines run with full filesystem + shell access (no sandbox) — like Claude's bypass mode. Turn auto mode off (General) to make them ask first. Live end-to-end verification with real model calls is pending your keys / a local LLM."
   },
@@ -855,7 +851,7 @@
     "downloadingHeadline": "Downloading v{{version}}",
     "downloadingDetail": "{{percent}}% done. You can keep working; the restart is yours to trigger.",
     "downloadedHeadline": "v{{version}} is ready to install",
-    "downloadedDetail": "Restart Munder Difflin to finish updating from v{{v}}.",
+    "downloadedDetail": "Restart DUM-E to finish updating from v{{v}}.",
     "restartBtn": "Restart to update",
     "manualDetail": "This install can't update itself — download it from the release page.",
     "manualDetailReason": "This install can't update itself ({{reason}}) — download it from the release page.",
@@ -882,7 +878,7 @@
     "webhooks": "WEBHOOKS",
     "webhooksBlurb": "Let an outside system post work in.",
     "organisation": "ORGANISATION",
-    "organisationBlurb": "Let a teammate's Munder Difflin message yours."
+    "organisationBlurb": "Let a teammate's DUM-E message yours."
   },
   "orgSection": {
     "acceptMessages": "Accept messages from your organisation",

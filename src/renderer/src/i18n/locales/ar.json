@@ -502,7 +502,6 @@
     "folderFromSession": "المجلد مضبوط من الجلسة: {{path}}",
     "resumeNote": "سيستأنف هذه الجلسة في المجلد المختار (عزل git معطّل).",
     "provider": "المزوّد",
-    "providerAntigravity": "أنشئ أداة Antigravity (agy) بنموذج Gemini",
     "providerCodex": "أنشئ أداة Codex (codex) بلا رايات خاصة بـClaude",
     "providerCustom": "شغّل أي أمر — بلا رايات خاصة بـClaude",
     "model": "النموذج",
@@ -544,7 +543,7 @@
     "importHireDesc": "يحمّل استيراد التعيين وكيلًا جاهزًا من ملف .json — ويملأ كل حقل أدناه لتراجعه. لا يُنشأ شيء حتى تضغط \"إنشاء\".",
     "generateWithAI": "ولّد واحدًا بالذكاء الاصطناعي…",
     "hideAIPrompt": "أخفِ موجّه الذكاء الاصطناعي",
-    "aiPromptHint": "انسخ هذا إلى Claude/ChatGPT/Gemini، واملأ التفاصيل في الأسفل، ثم احفظ ردّه بصيغة JSON في ملف ‎.json واستورده هنا.",
+    "aiPromptHint": "انسخ هذا إلى Qwen/Claude/ChatGPT، واملأ التفاصيل في الأسفل، ثم احفظ ردّه بصيغة JSON في ملف ‎.json واستورده هنا.",
     "copied": "نُسخ ✓",
     "copyPrompt": "انسخ الموجّه",
     "importHireBtn": "استورد تعيينًا…",
@@ -559,7 +558,7 @@
   },
   "onboarding": {
     "titles": {
-      "persona": "أهلًا بك في MUNDER DIFFLIN",
+      "persona": "أهلًا بك في DUM-E",
       "welcome": "تعرَّف على مكتبك",
       "home": "الخطوة 1 من 4 · منزل المنصّة",
       "homePlain": "الخطوة 1 من 4 · منزل للتطبيق",
@@ -572,7 +571,7 @@
     },
     "persona": {
       "headline": "نسخة منك، تعمل على مدار الساعة",
-      "body": "يحوّل Munder Difflin وكيل الـCLI الذي تستخدمه أصلًا إلى نسخة منك — نسخة تُدير مكتبًا من الوكلاء طويلي العمل وتواصل العمل وأنت غائب. وهو يتولّى كل ما حولهم: السياق والذاكرة والمهام والمشغّلات والبيئة والملفات والتكاملات.",
+      "body": "يحوّل DUM-E وكيل الـCLI الذي تستخدمه أصلًا إلى نسخة منك — نسخة تُدير مكتبًا من الوكلاء طويلي العمل وتواصل العمل وأنت غائب. وهو يتولّى كل ما حولهم: السياق والذاكرة والمهام والمشغّلات والبيئة والملفات والتكاملات.",
       "bodyLocal": " كل شيء يعمل على هذا الجهاز.",
       "ask": "أولًا — من أنت؟ (سنُفصّل الإعداد على مقاسك)",
       "technicalTitle": "أنا تقني",
@@ -587,8 +586,8 @@
       "features": {
         "engines": {
           "label": "أحد عشر محرّكًا، مكتب واحد",
-          "desc": "Claude Code وCodex وGrok وKimi وAntigravity وQwen وOpenCode وCrush وpi وCopilot وCursor — وكلاء أحياء على أرضية واحدة.",
-          "descPlain": "أحد عشر مساعدًا ذكيًا — Claude وCodex وCursor وGemini وGrok وغيرهم — يعملون جنبًا إلى جنب في مكتب واحد مشترك."
+          "desc": "Qwen وClaude Code وCodex وOpenCode — وكلاء أحياء على أرضية واحدة.",
+          "descPlain": "أربعة مساعدين ذكيين — Qwen وClaude Code وCodex وOpenCode — يعملون جنبًا إلى جنب في مختبر واحد مشترك."
         },
         "clone": {
           "label": "{{godName}} هو نسختك",
@@ -620,10 +619,7 @@
     "providerBlurb": {
       "claude": "Claude Code — Anthropic",
       "codex": "Codex — OpenAI",
-      "antigravity": "Antigravity — Google Gemini",
-      "qwen": "Qwen — يشغّل نموذج Qwen محليًا على جهازك",
-      "gemini": "Gemini CLI - Google Gemini",
-      "cursor": "Cursor Agent CLI — يستخدم أرصدة Cursor لديك (Luna، Composer، …)"
+      "qwen": "Qwen — يشغّل نموذج Qwen محليًا على جهازك"
     },
     "home": {
       "descPlain": "أنشئ مجلدًا جديدًا فارغًا ليتّخذه التطبيق منزلًا. كل ما يتذكّره التطبيق — إعداداته الخاصة وذاكرة وكلائك — يُخزَّن هنا. شيء مثل ~/HarnessAgents يفي بالغرض. وسننشئه لك إن لم يكن موجودًا.",
@@ -637,8 +633,8 @@
     "orchestrator": {
       "descPlain": "{{godName}} هو نسختك — يقرأ طلباتك، ويفكّكها إلى مهام، ويسلّمها إلى الوكيل المناسب. هو مدير الأرضية؛ وأنت ما زلت مديره. اختر محرّك الذكاء الاصطناعي الذي يشغّله.",
       "desc": "{{godName}} هو نسختك — مدير الأرضية الذي قابلته للتوّ. يفرز طلباتك، ويُسنِد المهام، ويُدير الفريق، ويُصعِّد كل ما يحتاجك فعلًا. اختر المحرّك والنموذج اللذين يشغّلانه؛ وأعطِه نموذجًا بسياق أطول وقدرة أعلى.",
-      "cliAgentPlain": "<strong>وكيل الـCLI</strong> مساعد برمجة ذكي يعمل على حاسوبك — وأشهرها Claude Code (من Anthropic) وCodex (من OpenAI) وAntigravity (من Google Gemini). و<strong>نسختك</strong> هي الوكيل الدائم الذي يُدير مكتبك كله. ننصح بـClaude Code على Opus 4.8 (1M). ويمكنك إضافة الباقي أو التبديل إليها لاحقًا.",
-      "cliAgent": "كل خيار هو <strong>محرّك CLI</strong> (Claude Code أو Codex أو Antigravity/Gemini أو وسيط محلي مثل Qwen). المحرّكات المعلَّمة بـINSTALLED موجودة على هذا الجهاز؛ وINSTALLS ON FIRST RUN يعني أن التطبيق يُعِدّها عند أول تشغيل لـ{{godName}}. و<strong>نسختك</strong> ({{godName}}) هي المحرّك الذي ينسّق الخلية كلها. الموصى به: Claude Code · Opus 4.8 · 1M. ويمكن ربط مزوّدين آخرين لكل وكيل لاحقًا.",
+      "cliAgentPlain": "<strong>وكيل الـCLI</strong> مساعد برمجة ذكي يعمل على حاسوبك — وأشهرها Qwen Code (من Alibaba) وClaude Code (من Anthropic) وCodex (من OpenAI). و<strong>نسختك</strong> هي الوكيل الدائم الذي يُدير مختبرك كله. ننصح بـQwen Code على qwen3-coder-plus. ويمكنك إضافة الباقي أو التبديل إليها لاحقًا.",
+      "cliAgent": "كل خيار هو <strong>محرّك CLI</strong> (Qwen Code أو Claude Code أو Codex أو OpenCode أو نقطة نهاية محلية). المحرّكات المعلَّمة بـINSTALLED موجودة على هذا الجهاز؛ وINSTALLS ON FIRST RUN يعني أن التطبيق يُعِدّها عند أول تشغيل لـ{{godName}}. و<strong>نسختك</strong> ({{godName}}) هي المحرّك الذي ينسّق الخلية كلها. الموصى به: Qwen Code · qwen3-coder-plus. ويمكن ربط مزوّدين آخرين لكل وكيل لاحقًا.",
       "recommended": "موصى به",
       "model": "النموذج",
       "modelNote": "هذا يضبط محرّك {{godName}} فقط. ويمكنك تشغيل مزوّدين آخرين لكل وكيل لاحقًا."
@@ -794,7 +790,7 @@
   },
   "aiEngines": {
     "providers": "مزوّدو محرّكات الذكاء الاصطناعي (بمفتاحك)",
-    "providersDesc": "مفاتيح API ونقاط النهاية المحلية لمحرّكات OpenCode وCrush وpi.dev وQwen. تُخزَّن المفاتيح للكتابة فقط (مشفَّرة عند التخزين؛ ولا تُعرض ثانيةً) وتُستخدم فقط عند إنشاء تلك المحرّكات. أمّا Claude Code وCodex فيستخدمان تسجيل الدخول الخاص بهما.",
+    "providersDesc": "مفاتيح API ونقاط النهاية المحلية لمحرّكي OpenCode وQwen. تُخزَّن المفاتيح للكتابة فقط (مشفَّرة عند التخزين؛ ولا تُعرض ثانيةً) وتُستخدم فقط عند إنشاء تلك المحرّكات. أمّا Claude Code وCodex فيستخدمان تسجيل الدخول الخاص بهما.",
     "apiKeys": "مفاتيح API",
     "setCheck": "مضبوط ✓",
     "keyStoredPlaceholder": "•••••••• (مخزَّن — اكتب للاستبدال)",
@@ -805,7 +801,7 @@
     "localEndpoint": "نقطة نهاية محلية · النموذج الافتراضي (لكل محرّك)",
     "defaultModelPlaceholder": "النموذج الافتراضي (مزوّد/نموذج)",
     "runningOpenModels": "تشغّل نماذج مفتوحة؟ أدلّة خطوة بخطوة:",
-    "runOnOpenModels": "شغّل Munder Difflin على نماذج مفتوحة",
+    "runOnOpenModels": "شغّل DUM-E على نماذج مفتوحة",
     "setUpMacMini": "أعِدّه على جهاز Mac Mini",
     "autoModeCaveat": "⚠ في الوضع التلقائي تعمل هذه المحرّكات بصلاحية كاملة على نظام الملفات والصدفة (بلا صندوق رملي) — مثل وضع التجاوز لدى Claude. أوقف الوضع التلقائي (عام) لتجعلها تسأل أولًا. التحقّق الحيّ الكامل باستدعاءات نماذج حقيقية ينتظر مفاتيحك أو نموذجًا محليًا."
   },
@@ -855,7 +851,7 @@
     "downloadingHeadline": "جارٍ تنزيل v{{version}}",
     "downloadingDetail": "اكتمل {{percent}}%. يمكنك مواصلة العمل؛ وإعادة التشغيل قرارك أنت.",
     "downloadedHeadline": "الإصدار v{{version}} جاهز للتثبيت",
-    "downloadedDetail": "أعِد تشغيل Munder Difflin لإتمام التحديث من v{{v}}.",
+    "downloadedDetail": "أعِد تشغيل DUM-E لإتمام التحديث من v{{v}}.",
     "restartBtn": "أعِد التشغيل للتحديث",
     "manualDetail": "لا تستطيع هذه النسخة تحديث نفسها — نزّلها من صفحة الإصدارات.",
     "manualDetailReason": "لا تستطيع هذه النسخة تحديث نفسها ({{reason}}) — نزّلها من صفحة الإصدارات.",
@@ -882,7 +878,7 @@
     "webhooks": "خطّافات الويب",
     "webhooksBlurb": "دع نظامًا خارجيًا يرسل العمل إليك.",
     "organisation": "المؤسسة",
-    "organisationBlurb": "دع نسخة Munder Difflin لدى زميلك تراسل نسختك."
+    "organisationBlurb": "دع نسخة DUM-E لدى زميلك تراسل نسختك."
   },
   "orgSection": {
     "acceptMessages": "قبول الرسائل من مؤسستك",
