@@ -1,0 +1,21 @@
+node_modules/
+node_modules
+out/
+dist/
+.DS_Store
+*.log
+.vite/
+.env
+.env.local
+.env.signing
+.gstack/
+
+# signing / notarization secrets — NEVER commit these
+*.p8
+*.p12
+*.cer
+*.mobileprovision
+build/AuthKey_*.p8
+
+# git worktree mounts for hive worker agents — never commit (each is a separate branch checkout)
+.worktrees/
