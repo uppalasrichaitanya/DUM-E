@@ -361,7 +361,7 @@ function FloorTab({ seed }: { seed: { text: string; seq: number } }) {
   // Per-agent token limit (overrides the floor budget for that agent), keyed by id.
   const [agentTokenCaps, setAgentTokenCaps] = useState<Record<string, number>>({});
   const [restarting, setRestarting] = useState<string | null>(null);
-  const [engineProvider, setEngineProvider] = useState<AgentProvider>('claude');
+  const [engineProvider, setEngineProvider] = useState<AgentProvider>('qwen');
   const [engineModel, setEngineModel] = useState<string | undefined>(undefined);
   const [restartErrors, setRestartErrors] = useState<Record<string, string>>({});
   // The harness's own default model (Settings → default model). Michael and every
@@ -382,7 +382,7 @@ function FloorTab({ seed }: { seed: { text: string; seq: number } }) {
       setRepos(c.registeredRepos ?? []);
       setTokenCap(c.costCapTokens);
       setAgentTokenCaps(c.agentTokenCaps ?? {});
-      setEngineProvider(c.godProvider ?? 'claude');
+      setEngineProvider(c.godProvider ?? 'qwen');
       setEngineModel(c.godModel);
       setDefaultModel(c.defaultModel);
     }).catch(() => { /* noop */ });

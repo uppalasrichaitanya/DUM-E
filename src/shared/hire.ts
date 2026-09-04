@@ -35,10 +35,9 @@ export const BUNDLED_SKILL_IDS: ReadonlySet<string> = new Set([
   'md-audit'
 ]);
 
-/** Providers a manifest may request ('agy' is accepted as an alias for
- *  'antigravity'). 'custom' is deliberately NOT allowed — it would let a
- *  manifest choose an arbitrary local binary. */
-export type HireProvider = 'claude' | 'antigravity' | 'codex' | 'cursor';
+/** Providers a manifest may request. 'custom' is deliberately NOT allowed — it
+ *  would let a manifest choose an arbitrary local binary. */
+export type HireProvider = 'claude' | 'codex' | 'qwen' | 'opencode';
 
 export interface HireManifest {
   /** Spec tag; exactly `dum-e/hire@1` for this version. */
@@ -91,7 +90,7 @@ export interface HireValidation {
   consentRequired?: string[];
 }
 
-const PROVIDERS: readonly string[] = ['claude', 'antigravity', 'codex', 'cursor'];
+const PROVIDERS: readonly string[] = ['claude', 'codex', 'qwen', 'opencode'];
 const MAX_BYTES = 64 * 1024;
 
 /** A flag ("-x", "--flag", "--flag=value") or a bare value token that may follow
@@ -192,9 +191,9 @@ export function validateHireManifest(raw: unknown): HireValidation {
 
   let provider: HireProvider | undefined;
   if (o.provider !== undefined) {
-    const p = str(o.provider) ? (o.provider === 'agy' ? 'antigravity' : o.provider) : o.provider;
+    const p = str(o.provider) ? o.provider : o.provider;
     if (str(p) && PROVIDERS.includes(p)) provider = p as HireProvider;
-    else errors.push(`"provider" must be one of ${PROVIDERS.join(', ')} (or "agy")`);
+    else errors.push(`"provider" must be one of ${PROVIDERS.join(', ')}`);
   }
 
   let commandFlags: string[] | undefined;

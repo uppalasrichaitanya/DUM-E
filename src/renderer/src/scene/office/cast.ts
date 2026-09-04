@@ -1,18 +1,21 @@
-// The Office cast — roster metadata + sprite frames.
+// The Stark-lab cast — roster metadata + sprite frames.
 //
-// Both the static portraits (cards / picker) and the in-scene walking sprites are
-// now fully custom-drawn from the same per-character recipes in portraitArt.ts:
-// the scene sprite reuses the portrait's exact head/face/clothing and adds legs,
-// so an agent on the office floor looks identical to its card. The LimeZu base
-// sheets are no longer used for the cast. See assets/ATTRIBUTION.md.
+// DUM-E runs a robotics lab, not a paper company: the roster is Tony-inspired
+// robot agents. Both the static portraits (cards / picker) and the in-scene
+// walking sprites are custom-drawn from the same per-character recipes in
+// portraitArt.ts: the scene sprite reuses the portrait's exact head/face and
+// adds legs, so an agent on the lab floor looks identical to its card.
+//
+// The names are Marvel references kept for the team's internal tool — swap for
+// original robot names before any public distribution.
 
 import { Texture } from 'pixi.js';
 import { paintPortrait, sceneFrameBufs, SCENE_W, SCENE_H } from './portraitArt';
 
 export type OfficeCharacterName =
-  | 'michael' | 'jim' | 'pam' | 'dwight' | 'kevin' | 'angela'
-  | 'oscar' | 'stanley' | 'phyllis' | 'andy' | 'kelly' | 'ryan'
-  | 'toby' | 'creed' | 'meredith';
+  | 'dume' | 'herbie' | 'butterfingers' | 'doombot' | 'sentinel'
+  | 'rover' | 'vision' | 'ultron' | 'ultronbot' | 'modok'
+  | 'veronica' | 'edith' | 'lyla';
 
 export interface CastMember {
   name: OfficeCharacterName;
@@ -25,27 +28,25 @@ export interface CastMember {
 
 /** Selectable roster, in display order. */
 export const OFFICE_CAST: CastMember[] = [
-  { name: 'michael',  displayName: 'Michael',  shirt: '#5a6b8c', blurb: "World's best boss" },
-  { name: 'jim',      displayName: 'Jim',      shirt: '#6fa8dc', blurb: 'Salesman, prankster' },
-  { name: 'pam',      displayName: 'Pam',      shirt: '#9caf88', blurb: 'Receptionist, artist' },
-  { name: 'dwight',   displayName: 'Dwight',   shirt: '#b89b3e', blurb: 'Assistant (to the) RM' },
-  { name: 'kevin',    displayName: 'Kevin',    shirt: '#4a7ab5', blurb: 'Accounting' },
-  { name: 'angela',   displayName: 'Angela',   shirt: '#8a86a6', blurb: 'Head of accounting' },
-  { name: 'oscar',    displayName: 'Oscar',    shirt: '#7a4b6b', blurb: 'Accountant' },
-  { name: 'stanley',  displayName: 'Stanley',  shirt: '#8c5a4b', blurb: 'Sales, crossword' },
-  { name: 'phyllis',  displayName: 'Phyllis',  shirt: '#b08bbf', blurb: 'Sales' },
-  { name: 'andy',     displayName: 'Andy',     shirt: '#6fae6f', blurb: 'Cornell, a cappella' },
-  { name: 'kelly',    displayName: 'Kelly',    shirt: '#d16ba5', blurb: 'Customer service' },
-  { name: 'ryan',     displayName: 'Ryan',     shirt: '#3a3a44', blurb: 'The temp' },
-  { name: 'toby',     displayName: 'Toby',     shirt: '#9a8c5a', blurb: 'Human resources' },
-  { name: 'creed',    displayName: 'Creed',    shirt: '#6b7a4b', blurb: 'Quality assurance' },
-  { name: 'meredith', displayName: 'Meredith', shirt: '#b5544a', blurb: 'Supplier relations' },
+  { name: 'dume',          displayName: 'DUM-E',          shirt: '#266FD6', blurb: 'The arm that runs the lab' },
+  { name: 'herbie',        displayName: 'H.E.R.B.I.E',   shirt: '#8FD14F', blurb: 'Researcher, librarian of the hive' },
+  { name: 'butterfingers', displayName: 'Butterfingers', shirt: '#F4A259', blurb: 'Sandbox tinkerer, drops things' },
+  { name: 'doombot',       displayName: 'Doombot',       shirt: '#5B6E7A', blurb: 'General-purpose worker' },
+  { name: 'sentinel',      displayName: 'Sentinel',     shirt: '#9B6BDC', blurb: 'Watchful general worker' },
+  { name: 'rover',         displayName: 'Rover',        shirt: '#C97B3D', blurb: 'Web explorer, fetches things' },
+  { name: 'vision',        displayName: 'Vision',        shirt: '#B03060', blurb: 'Planner, sees the whole board' },
+  { name: 'ultron',        displayName: 'Ultron',        shirt: '#D64541', blurb: 'Relentless heavy builder' },
+  { name: 'ultronbot',     displayName: 'Ultron-bot',    shirt: '#8A3130', blurb: 'Ephemeral parallel worker' },
+  { name: 'modok',         displayName: 'MODOK',        shirt: '#E8B93E', blurb: 'Analyst, counts the tokens' },
+  { name: 'veronica',      displayName: 'VERONICA',     shirt: '#3E8EDE', blurb: 'Rescue agent, fixes broken builds' },
+  { name: 'edith',         displayName: 'EDITH',        shirt: '#4DB6AC', blurb: 'Integrations, eyes everywhere' },
+  { name: 'lyla',          displayName: 'LYLA',         shirt: '#E06FA8', blurb: 'Scheduler, keeps the beat' },
 ];
 
 export const CAST_BY_NAME: Record<OfficeCharacterName, CastMember> =
   Object.fromEntries(OFFICE_CAST.map((c) => [c.name, c])) as Record<OfficeCharacterName, CastMember>;
 
-export const DEFAULT_CHARACTER: OfficeCharacterName = 'jim';
+export const DEFAULT_CHARACTER: OfficeCharacterName = 'doombot';
 
 export function hexToNumber(hex: string): number {
   return parseInt(hex.replace('#', ''), 16);

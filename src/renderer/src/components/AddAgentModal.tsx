@@ -91,11 +91,11 @@ Return EXACTLY this shape (omit optional fields you don't need; keep the spec st
 
 {
   "spec": "dum-e/hire@1",
-  "name": "Jim",
+  "name": "Ultron",
   "description": "one-line role — what this agent is for",
   "goal": "standing directive injected on every prompt — specific and outcome-oriented",
-  "provider": "claude",
-  "model": "claude-opus-4-8[1m]",
+  "provider": "qwen",
+  "model": "qwen3-coder-plus",
   "capabilities": ["code-review", "docs"],
   "isolate": false,
   "tokenCap": 2000000,
@@ -103,13 +103,13 @@ Return EXACTLY this shape (omit optional fields you don't need; keep the spec st
 }
 
 Rules:
-- "provider" MUST be one of: cursor | claude | codex | antigravity. "model" must be a real model id for that provider (e.g. gpt-5.6-luna-high, claude-opus-4-8[1m], gpt-5-codex, "Gemini 3.1 Pro (High)").
+- "provider" MUST be one of: qwen | claude | codex | opencode. "model" must be a real model id for that provider (e.g. qwen3-coder-plus, claude-opus-4-8[1m], gpt-5-codex).
 - Do NOT include shell commands or any flags beyond these fields.
 - Make "description" + "goal" concrete enough that the agent knows exactly what to do on its first turn.
 
 --- ADD YOUR DETAILS BELOW (the AI should use these) ---
 Role / what I want this agent to do:
-Preferred engine (claude / codex / antigravity), if any:
+Preferred engine (qwen / claude / codex / opencode), if any:
 Repos, tools, style, or constraints to respect:
 `;
 
@@ -882,13 +882,11 @@ export function AddAgentModal({ onClose, config, onConfigChange }: AddAgentModal
                               key={p.id}
                               onClick={() => pickProvider(p.id)}
                               title={
-                                p.id === 'antigravity'
-                                  ? tr('addAgent.providerAntigravity')
-                                  : p.id === 'codex'
-                                    ? tr('addAgent.providerCodex')
-                                    : p.id === 'custom'
-                                      ? tr('addAgent.providerCustom')
-                                      : p.label
+                                p.id === 'codex'
+                                  ? tr('addAgent.providerCodex')
+                                  : p.id === 'custom'
+                                    ? tr('addAgent.providerCustom')
+                                    : p.label
                               }
                               style={{
                                 padding: '3px 8px 1px',
@@ -993,7 +991,7 @@ export function AddAgentModal({ onClose, config, onConfigChange }: AddAgentModal
                       </Row>
                     )}
 
-                    {(provider === 'opencode' || provider === 'crush' || provider === 'pi' || provider === 'qwen') && (
+                    {(provider === 'opencode' || provider === 'qwen') && (
                       <div style={{ fontSize: 12, color: 'var(--cth-ink-500)', lineHeight: '16px', margin: '2px 0 6px' }}>
                         {tr('addAgent.byokNote')}
                         {' '}
@@ -1016,13 +1014,11 @@ export function AddAgentModal({ onClose, config, onConfigChange }: AddAgentModal
                         value={command}
                         onChange={(e) => setCommand(e.target.value)}
                         placeholder={
-                          provider === 'antigravity'
-                            ? 'agy'
-                            : provider === 'codex'
-                              ? 'codex'
-                              : provider === 'custom'
-                                ? 'your-agent-cli'
-                                : 'claude'
+                          provider === 'codex'
+                            ? 'codex'
+                            : provider === 'custom'
+                              ? 'your-agent-cli'
+                              : 'claude'
                         }
                         style={{ ...inputStyle, fontFamily: 'var(--cth-font-mono)' }}
                       />

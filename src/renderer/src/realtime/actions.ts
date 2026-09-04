@@ -6,7 +6,7 @@
  * These are THIN — every tool just forwards a {verb, ...args} to the main process
  * (src/main/realtimeActions.ts), which owns the entire safety spine: the soft-vs-
  * destructive tiering, the two-step verbal echo-back confirm, the distinct-token
- * rule, the hard allowlist (kill-god / mass-ops forbidden), and the michael-voice
+ * rule, the hard allowlist (kill-god / mass-ops forbidden), and the god-voice
  * attribution. The renderer is the untrusted side, so it holds NO policy — it only
  * speaks back what main returns (`res.spoken`).
  *

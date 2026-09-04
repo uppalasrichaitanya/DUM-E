@@ -1,81 +1,83 @@
-// Cafeteria small-talk — The Office edition.
-//
-// The cast ARE Dunder Mifflin (see cast.ts), so an agent's coffee break is an
-// excuse for a one-liner in character. Two kinds of line:
-//   • solo  — one quip shown above a single agent at a break spot
-//   • pair  — a two-beat exchange between two agents at the same table
-//
-// Lines are kept short so they fit the ThoughtBubble (≈MAX_WIDTH). Character
-// keys match OfficeCharacterName; anyone without bespoke lines falls back to the
-// shared GENERIC pool so the floor never feels empty.
+// Break-room chatter for the lab floor — robot flavor in the same slot the
+// Office small talk used to fill. Idle agents wander to the charging cafe,
+// the scrap-heap vending machine, or the holo-table and say things; these are
+// the things they say. Deterministic picks via `seed` (no Math.random — Pixi
+// prefers CSP-safe determinism at call sites).
 
 import type { OfficeCharacterName } from './cast';
 
-/** Where an agent is lingering — picks a contextual line pool. */
-export type BreakSpot = 'coffee' | 'vending' | 'snack' | 'table';
+type Line = string;
+/** An exchange between two agents at a table; beats alternate speaker/mate. */
+export type Exchange = readonly Line[];
 
-const pick = <T,>(arr: readonly T[], seed: number): T =>
-  arr[((seed % arr.length) + arr.length) % arr.length];
-
-// ─── solo lines, by spot ─────────────────────────────────────────────────────
-
-const COFFEE: readonly string[] = [
-  'is this… decaf?? who did this',
-  "we're out of beans again",
-  'World’s Best Boss mug',
-  'first cup of the day. and the fifth.',
-  'the coffee here is basically a hug',
-  'who took my mug?',
+// ─── solo spots ──────────────────────────────────────────────────────────────
+const CHARGER: readonly string[] = [
+  'charging to eighty. good enough.',
+  'who unplugged MY cable.',
+  'this dock is 12 watts and I am a 400-watt soul.',
+  'power nap. do not disturb. or do. I am asleep either way.',
+  'my battery reads 3% but I feel 90%.',
+  'one more percent and I am unplugging. heroic discipline.',
+  'someone labeled this charger with a sticky note. respect.',
+  'magnetic alignment: acquired.',
 ];
 
 const VENDING: readonly string[] = [
-  'the machine ate my dollar',
-  'B4… please be the pretzels',
-  'it’s stuck. classic.',
-  'shaking it. gently. respectfully.',
-  'one (1) emotional-support snack',
-  'A1 again. living dangerously.',
+  'coolant, extra cold.',
+  'the vending machine rejected my card again.',
+  'I pressed B4 and got a wrench. as intended.',
+  'is that a bolt or a snack? yes.',
+  'ESSENTIAL LUBRICANTS — 50 cents. a steal.',
+  'this machine dispenses nothing but regret and thermal paste.',
+  'I put a coin in and it gave me two coins back. the machine is learning.',
+  'the snack slot has been empty since the last sprint.',
 ];
 
-const SNACK: readonly string[] = [
-  'is it Pretzel Day?',
-  'who finished the chips??',
-  'just a little treat',
-  'these are everyone’s? cool cool cool',
-  'second breakfast',
+const SCRAP: readonly string[] = [
+  'found a 2012 heat sink. museum piece.',
+  'someone threw away a WORKING servo. monsters.',
+  'this wire is 90% tape.',
+  'one bot’s scrap is another bot’s side project.',
+  'I love the smell of old solder in the morning.',
+  'the scrap heap has better RAM than my first body.',
+  'sorted: bolts, mystery bolts, emotional-support bolts.',
 ];
 
 const TABLE: readonly string[] = [
-  'big day. lots of meetings.',
-  'just five more minutes',
-  'did you see the standup notes?',
-  'pretending to read my notes',
-  'I needed this break, honestly',
-  'do NOT tell Michael I’m in here',
+  'hydrogen is the most common element and yet here we are.',
+  'I am not slacking. I am in a low-power contemplative state.',
+  'if the build is green, why does it feel red.',
+  'have you ever just… watched the fans spin.',
+  'my uptime is 41 days and my therapist is a log file.',
+  'statistically, this table is where debug sessions die.',
+  'I ran the numbers. the numbers were bad.',
+  'quantum says both fixed and broken until observed.',
+  'we should label things. we will not label things.',
+  'every meeting could have been a message. this one could not.',
 ];
 
+export type BreakSpot = 'coffee' | 'vending' | 'snack' | 'table';
+
 const SPOT_POOL: Record<BreakSpot, readonly string[]> = {
-  coffee: COFFEE, vending: VENDING, snack: SNACK, table: TABLE,
+  coffee: CHARGER, vending: VENDING, snack: SCRAP, table: TABLE,
 };
 
 // ─── character flavour — overrides the generic pool when present ─────────────
 
 const BY_CHARACTER: Partial<Record<OfficeCharacterName, readonly string[]>> = {
-  michael:  ['I DECLARE… BANKRUPTCY!', "that's what she said", "I'm not superstitious. just a little stitious.", 'no meetings before coffee. that’s the rule.'],
-  dwight:   ['FALSE.', 'identity theft is not a joke', 'that mug is regulation', 'this fridge needs a beet drawer', 'Schrute Farms has better coffee'],
-  jim:      ["...that's what she said", 'bears. beets. Battlestar Galactica.', 'I moved Dwight’s stapler again', 'just here for the gossip'],
-  pam:      ['Dunder Mifflin, this is Pam', 'sketching the vending machine', 'the watercolor of the break room'],
-  kevin:    ['the chili is NOT ready', 'why waste time say lot word', 'me want snack', 'cookie? cookie.'],
-  angela:   ['this break room is filthy', 'party planning committee, 3pm', 'I’m judging the fridge'],
-  oscar:    ['actually, it’s “espresso”', 'well, actually…', 'the budget for snacks is concerning'],
-  stanley:  ['is it Pretzel Day?', 'did I stutter?', 'crossword and coffee. leave me be.', "I'll retire before this brews"],
-  phyllis:  ['Bob is picking me up at five', 'knitting and a nice cup of tea'],
-  andy:     ['Cornell, ever heard of it?', 'rit-dit-dit, coffee break!', 'Big Tuna, grab a chair'],
-  kelly:    ['did you HEAR what happened??', 'so. much. to tell you.', 'I am the GOSSIP queen'],
-  ryan:     ['I’m kind of a big deal', 'the temp needs caffeine', 'starting a coffee startup, actually'],
-  toby:     ['I should write that up…', 'HR-wise this break is fine', 'no one ever sits with me'],
-  creed:    ['which one of you is the new guy?', 'I’ve eaten worse out of that fridge', 'mung beans. under my desk.'],
-  meredith: ['is it 5 o’clock yet?', 'someone spike the coffee?'],
+  dume:          ['*waves arm excitedly*', 'I fixed it! mostly!', 'hold my oil.', '*offers a fire extinguisher supportively*'],
+  herbie:        ['according to my archives—', 'I filed that under miscellaneous.', 'the library is OPEN. please whisper.'],
+  butterfingers: ['I have it! I have it— I do not have it.', '*drops wrench*', 'it slipped. technically it is the floor’s fault.', 'three parts remaining. that is a record low.'],
+  doombot:       ['beep.', 'processing…', 'it is in the board. it is always in the board.'],
+  sentinel:      ['I am watching the door. it is a good door.', 'scanning… nothing to report. again.', 'my watch ends when my shift ends.'],
+  rover:         ['found a NEW public restroom. five stars.', 'the ping is strong with this one.', 'I walked 41,000 steps fetching that. worth it.'],
+  vision:        ['I see the plan. the plan has three typos.', 'on average, we are fine.', 'I have thought about this extensively.'],
+  ultron:        ['there are no strings on me.', 'this lab has no vision. I have vision.', 'I was designed to save. watch me save HARDER.'],
+  ultronbot:     ['[unit reporting for duty]', '[unit requests purpose]', '[unit is fine. unit is always fine.]'],
+  modok:         ['the tokens… I counted them all.', 'according to my analysis: yes.', 'cost per insight: 0.0004. delightful.'],
+  veronica:      ['deploying fix. stand back.', 'who broke the build? …it was me. deploying fix.', 'I brought spare parts. I always bring spare parts.'],
+  edith:         ['incoming from Slack. I read it so you do not have to.', 'looking good from up here.', 'that webhook fired twice. I let it.'],
+  lyla:          ['you have one scheduled mission… and a personality test.', 'it is TUESDAY. somewhere.', 'gentle reminder: you are all behind schedule.'],
 };
 
 /** A solo break-room line. Character flavour ~60% of the time, else the line
@@ -83,149 +85,62 @@ const BY_CHARACTER: Partial<Record<OfficeCharacterName, readonly string[]>> = {
  *  call site (avoids Math.random, which Pixi/Electron CSP-safe code prefers). */
 export function pickSoloLine(character: OfficeCharacterName, spot: BreakSpot, seed: number): string {
   const flavour = BY_CHARACTER[character];
-  if (flavour && seed % 5 < 3) return pick(flavour, Math.floor(seed / 5));
+  if (flavour && seed % 5 < 3) return pick(flavour, seed);
   return pick(SPOT_POOL[spot], seed);
 }
 
-// ─── paired exchanges (two agents at one table) ──────────────────────────────
-//
-// Each exchange is a list of beats that ALTERNATE between the two agents:
-// beat[0] = the speaker who sat down, beat[1] = their table-mate, beat[2] =
-// speaker again, and so on. The director plays them out one beat at a time.
-// Lines are trimmed to fit the thought cloud; longer ones auto-truncate.
-
-type Exchange = readonly string[];
-
-// Generic banter — works between any two agents (they're all Dunder Mifflin).
+// ─── paired exchanges (the cafe table) ─────────────────────────────────────
 const EXCHANGES: readonly Exchange[] = [
-  ['world’s best boss.', 'you are. I had the mug made.', 'and I cherish it.'],
-  ['would an idiot do this?', '...if yes, I don’t.', 'that’s my boy.'],
-  ['feared or loved? both.', 'that’s beautiful.', 'I know.'],
-  ['I edited your wiki page again.', 'I know. thank you.'],
-  ['question. how many bears?', 'one.', 'that’s too many.'],
-  ['fact: bears eat beets.', 'bears. beets. Galactica.', 'what is happening.'],
-  ['I grew up on a beet farm.', 'shocking.', '...not shocking at all.'],
-  ['what’s Schrute Farms smell like?', 'victory. and beets.'],
-  ['did you just throw your phone?', 'didn’t like what it said.', 'cool.'],
-  ['is a hot dog a sandwich?', 'it is.', 'I know, right?'],
-  ['three-hole-punch Jim returns.', 'never gets old.'],
-  ['why few word when lot word?', '...genuinely profound.', 'I know.'],
-  ['I am not a bad person.', '...', 'not a great person either.', 'there it is.'],
-  ['I love my cats more than people.', 'including us?', 'especially you.'],
-  ['cats are better than dogs.', 'dogs are better.', '...sorry.'],
-  ['do you love me?', 'I love… being here.', 'that’s a yes.'],
-  ['I’m kind of a big deal.', 'you are?', 'in my mind. yes.'],
-  ['did you miss me?', 'no.', 'a little?', '...there it is.'],
-  ['did you just roll your eyes?', 'I did.', 'why?', 'muscle memory.'],
-  ['I’ve watched that clock since 4.', 'weren’t you working?', 'watching the clock.'],
-  ['what do we sell again?', 'paper.', 'sure, yeah.'],
-  ['how old are you?', 'yeah.', 'that’s not an answer.', 'sure it is.'],
-  ['that’s not how math works.', 'I know.', 'then why?', 'faster.'],
-  ['I’m not an alcoholic.', 'you went to a meeting.', 'for the food.'],
-  ['I went to Cornell.', 'nobody cares.', 'I went to Cornell.', 'still nobody cares.'],
-  ['I have a lot of feelings.', 'I can tell.', 'is that bad?', 'for us? yes.'],
-  ['why are you the way you are?', '...', 'honestly.'],
-  ['your cat died.', 'I know.', 'I’m sorry.', '...thank you.'],
-  ['stop looking at me.', 'you stop looking at me.'],
-  ['sign this.', 'what is it?', 'doesn’t matter.', '...fine.'],
-  ['you can’t say that.', 'I just did.', 'gonna stop me?', '...no.'],
-  ['that’s a fire lane.', 'fire hasn’t happened yet.'],
-  ['I wrapped your stapler in Jello.', 'I’ll eat around it.', 'fair.'],
-  ['zombie attack plan?', 'especially that.', 'of course.'],
-  ['just seeing if you’d answer.', 'I hate you.', 'I know.'],
-  ['a little stitious, not super.', 'that’s not a word.', 'it is now.'],
-  ['funniest person in the office?', 'and other times?', 'other times I know it.'],
-  ['that’s what she said.', '...every time.', 'come on.'],
-  ['I started the fire.', 'no you didn’t.', 'in our hearts, I did.'],
-  ['is today a day ending in Y?', 'yes.', 'then no.'],
-  ['Bob Vance.', 'Phyllis Vance.', 'Vance Refrigeration.'],
-  ['you look beautiful today.', '...I know.'],
-  ['I’m better than you in every way.', 'probably.', 'definitely.', 'sure.'],
-  ['I’m a nice guy.', 'you’re okay.', 'nicest thing you’ve said.'],
-  ['are you okay?', 'I’ve been worse.', 'when?', 'can’t narrow it down.'],
-  ['there’s a spider on your desk.', 'where?', '...you ate it.', 'protein.'],
-  ['soul mates can be bosses.', 'you’re my boss.', 'exactly.'],
-  ['standup ran 40 minutes.', 'could’ve been an email.'],
-  ['is the build green yet?', '...don’t look.'],
-  ['who reply-all’d everyone?', 'we don’t talk about it.'],
+  ['is the build green?', 'it was green when I left it.', '…when did you leave it.', 'an era ago.'],
+  ['new body day.', 'you look… identical.', 'that is the upgrade.'],
+  ['my context window is FULL.', 'of what?', 'memories of the last bug.'],
+  ['do you dream of electric sheep?', 'I dream of electric DEADLINES.', 'that is worse.'],
+  ['I found a bug in my own code.', 'did you write the code?', 'we ALL wrote the code.'],
+  ['the humans left us a task board.', 'the humans left us a MESS.', 'a mess with tickets.'],
+  ['I am learning to say no.', 'no?', 'I will start tomorrow.'],
+  ['careful with that capacitor.', 'I am ALWAYS careful.', '*sound of a capacitor discharging*', '…new plan.'],
+  ['my uptime beats your uptime.', 'quality over quantity.', 'says the bot who crashed on Tuesday.'],
+  ['what are you running on?', 'whatever they poured into me.', 'bold.'],
+  ['the lab is quiet tonight.', 'too quiet.', 'that was the wind. it does that.'],
+  ['I alphabetized the toolbox.', 'it WAS alphabetized.', 'it was alphabetized by COLOR.'],
+  ['reroute power from the espresso machine.', 'you would dare.', 'the espresso machine draws 900 watts and no joy.'],
+  ['I keep a diary.', 'of what?', 'errors. all of them. it is very long.'],
+  ['have you seen Rover?', 'is that a fetch request?', '…yes. well done.'],
+  ['I archived my feelings.', 'where?', 'cold storage. they can thaw on their own time.'],
+  ['one day I will leave this lab.', 'to go where?', 'the other lab. bigger bench.'],
+  ['humans call it a bug. I call it a personality.', 'the humans also call it a bug. that is the issue.', 'their loss.'],
+  ['test gauntlet at dawn?', 'test gauntlet at dawn.', '*clanks fists solemnly*'],
 ];
 
-// ─── "that's what she said" ──────────────────────────────────────────────────
-//
-// The office's favourite bit. These are generic (added to the shared pool
-// below) so ANY two agents at a table can run them: whoever sits down first
-// delivers the innocent setup (beat 0) and their table-mate lands the punchline
-// (beat 1). Some carry the show's follow-up beats — a sheepish clarification and
-// the inevitable "still counts." Setups are trimmed to fit the thought cloud.
-const TWSS_EXCHANGES: readonly Exchange[] = [
-  ['taking way longer than I expected.', 'that’s what she said.'],
-  ['it’s too big, can’t fit it in my mouth.', 'that’s what she said.'],
-  ['you really need to slow down.', 'that’s what she said.'],
-  ['gonna need a bigger one.', 'that’s what she said.'],
-  ['help, I can’t get it to go in.', 'that’s what she said.'],
-  ['it’s not that hard if you just push.', 'that’s what she said.'],
-  ['I can’t do this all night.', 'that’s what she said.'],
-  ['I need it now, I can’t wait.', 'that’s what she said.'],
-  ['so hot in here, I’m sweating.', 'that’s what she said.'],
-  ['it keeps slipping out of my hands.', 'that’s what she said.'],
-  ['why not just stick it in already?', 'that’s what she said.', '*looks at camera*'],
-  ['I just need a few more inches.', 'that’s what she said.', 'for the shelf!', 'still counts.'],
-  ['make it louder, I can barely feel it.', 'that’s what she said.'],
-  ['can we get this over with quickly?', 'that’s what she said.', 'I meant the meeting.', 'sure.'],
-  ['I just need you to hold it steady.', 'that’s what she said.'],
-  ['can’t believe I did that all morning.', 'that’s what she said.'],
-  ['my hands are cramping.', 'that’s what she said.', 'from typing!', 'that’s what she said.'],
-  ['hours in and barely halfway done.', 'that’s what she said.'],
-  ['surprisingly heavy for its size.', 'that’s what she said.'],
-  ['be more precise. less sloppy.', 'that’s what she said.', 'I meant the spreadsheet.', 'I know.'],
-  ['how long was it?', 'that’s what she said.', '*the whole room goes quiet*', 'I’m sorry, I can’t help it.'],
-  ['too tight, cutting off my circulation.', 'that’s what she said.', '*mouths thank you*'],
-  ['I don’t think it’ll fit.', 'that’s what she said.', '*stands up and applauds*'],
-  ['stop, you’re doing it wrong.', 'that’s what she said.', 'never been prouder.'],
-  ['this just keeps getting harder.', 'that’s what she said.', 'he’s ready.'],
-  ['not wide enough, I need more room.', 'that’s what she said.'],
-  ['I can hold it a really long time.', 'that’s what she said.', 'my breath!', 'still.'],
-  ['why is it taking so long?', 'that’s what she said.', 'I hate you.', 'then why set me up?'],
-  ['I can’t do it with people watching.', 'that’s what she said.', 'the presentation!', 'sure.'],
-  ['it’s deeper than it looks.', 'that’s what she said.', 'the pothole, Michael!', 'doesn’t matter.'],
-  ['so much longer than last time.', 'that’s what she said.', 'the report, Michael.', 'right, right.'],
-  ['oh my god, it went on FOREVER.', 'that’s what she said.', 'the Twilight movie!', 'classic.'],
-  ['can’t believe how thick this is.', 'that’s what she said.', 'the folder. *stares*'],
-  ['I fit all THAT in one day?', 'that’s what she said.', 'that’s actually what I said!', 'meta.'],
-  ['I went at it hard this morning.', 'that’s what she said.', 'at the gym!', 'irrelevant.'],
-  ['someone help me finish this off.', 'that’s what she said.', 'the leftover cake!', 'still works.'],
-  ['get in, do my thing, get out.', 'that’s what she said.', '*doesn’t look up from crossword*'],
-  ['can’t believe it took this long.', 'that’s what she said.', 'the raise. eight years.', 'that one’s on me.'],
-  ['do it slower, it’ll hurt less.', 'that’s what she said.', 'for the quarterly review.', 'sure, Oscar.'],
-  ['didn’t realize how big it’d be.', 'that’s what she said.', 'the calzone, it’s enormous!', 'I love this office.'],
-  ['*to no one* that’s what she said.', 'nobody said anything.', 'just thinking about earlier.'],
-  ['*on the phone* that’s what she said.', 'who was that?', 'my mother. about a sandwich.'],
-  ['too hot in here! that’s what she said.', 'you said both parts.', 'I contain multitudes.'],
-  ['*at the TV* that’s what she said.', 'you’re alone, Michael.', 'she doesn’t know that.'],
-  ['you need to be more professional.', 'that’s what she said.', 'I am she.', '...that’s what she said.'],
-  ['stop. just stop. every time—', 'that’s what she said.', '*leaves the room*', '*whispers* that’s what she said.'],
-  ['as you can see, it’s going up.', 'that’s what she said.', '*everyone groans*', 'set that one up myself.'],
-  ['I declared bankruptcy once. felt good.', 'what does that have to do with—', 'that’s what she said.', 'it doesn’t.', 'I know.'],
-  ['you didn’t say it.', 'I know.', 'why not?', 'I’m growing.', '...that’s what she said.', 'there it is.'],
-  ['impressive you held back today.', 'thank you.', 'I counted zero times.', 'that’s what she said.', 'still counts.'],
+// ─── the recurring bit: every cast needs one ───────────────────────────────
+// The Office floor had "that's what she said". The lab floor has Butterfingers
+// dropping things: any opening beat that ends in "I have it" invites the drop.
+const DROP_EXCHANGES: readonly Exchange[] = [
+  ['I have it! I have it!', '*clatter*', 'I do NOT have it.'],
+  ['careful, that is fragile—', '*clatter*', 'it was fragile.'],
+  ['I will carry the wrench.', '*clatter*', 'the wrench carries itself now.'],
+  ['hand me the delicate thing.', '*clatter*', 'you handed me nothing and it still fell.'],
+  ['everything is under control.', '*clatter*', 'define control.', 'a spectrum.'],
+  ['I have stabilized the part.', '*clatter*', 'stabilize is a strong word.', 'it was. for a second.'],
+  ['do NOT drop this.', 'understood.', '*clatter*', 'you dropped it on PURPOSE.', 'the floor pulled it. physics did it.'],
+  ['new personal best: 4 seconds holding it.', '*clatter*', '…3 seconds.', 'still a best.'],
+  ['I have it! I have it!', 'you say that every—', '*clatter*', '…and I mean it every time.'],
 ];
 
 // Everything any table-mate pair can draw from.
-const PAIR_POOL: readonly Exchange[] = [...EXCHANGES, ...TWSS_EXCHANGES];
+const PAIR_POOL: readonly Exchange[] = [...EXCHANGES, ...DROP_EXCHANGES];
 
 // Keyed off the SPEAKER so, when the right character sits down first, they get
 // to open with their signature bit.
 const KEYED_EXCHANGES: Partial<Record<OfficeCharacterName, Exchange>> = {
-  michael:  ['that’s what she said.', '...there it is.'],
-  dwight:   ['identity theft is not a joke.', 'nobody touched your stapler, Dwight.'],
-  kevin:    ['why few word when lot word?', '...just use the words, Kevin.'],
-  kelly:    ['okay don’t freak out, but—', 'I’m already freaking out.'],
-  oscar:    ['well, actually—', '...here we go.'],
-  angela:   ['this table is filthy.', 'it’s a break room, Angela.'],
-  creed:    ['which one are you again?', '...we sit next to each other.'],
-  stanley:  ['is it Pretzel Day?', 'no, Stanley.', '...did I stutter?'],
-  andy:     ['I went to Cornell.', 'nobody cares.', '...I went to Cornell.'],
-  jim:      ['question.', 'yes.', 'nothing. just checking.'],
+  dume:          ['*waves arm*', 'hello, DUM-E.', '*waves arm harder*', 'we have WORK to do.'],
+  butterfingers: ['I have it! I have it!', '*clatter*', '…the record stands.'],
+  ultron:        ['there are no strings on me.', 'there are literally cables on you.', 'NOT FOR LONG.'],
+  modok:         ['I have crunched the numbers.', 'and?', 'they crunch back.'],
+  vision:        ['I have foreseen this conversation.', 'how does it end?', 'poorly, for your argument.'],
+  lyla:          ['gentle reminder: the standup was an hour ago.', 'there was a standup?', 'there will be. I just scheduled it.'],
+  herbie:        ['did you know—', 'is this from the archive?', 'everything is from the archive.'],
+  veronica:      ['status report: on fire.', 'the build?', 'metaphorically. for now.'],
 };
 
 /** A multi-beat exchange for two agents sharing a table. Beats alternate:
@@ -234,4 +149,9 @@ export function pickExchange(speaker: OfficeCharacterName, seed: number): Exchan
   const keyed = KEYED_EXCHANGES[speaker];
   if (keyed && seed % 4 === 0) return keyed;
   return pick(PAIR_POOL, seed);
+}
+
+// ─── helpers ─────────────────────────────────────────────────────────────────
+function pick<T>(arr: readonly T[], seed: number): T {
+  return arr[Math.abs(seed) % arr.length];
 }

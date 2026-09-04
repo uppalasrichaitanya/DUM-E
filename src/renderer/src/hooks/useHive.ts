@@ -73,11 +73,11 @@ function withStandingGoal(agent: Agent, text: string): string {
 // The first thing Michael (god) is told on a fresh spawn — orient him and put
 // him to work running the floor. Kept terse and action-oriented.
 const INITIAL_GOD_PROMPT = [
-  "You're online as Michael, the orchestrator of the hive. Get oriented, then start running the floor:",
+  "You're online as the orchestrator of the hive. Get oriented, then start running the floor:",
   '1. Read your memory.md and drain every message in your inbox.',
   '2. Review board.md + tasks.json and the current roster of agents (active vs archived).',
   '3. Check fleet health: read fleet.json in the hive root for every agent\'s live tokens, cost, status, breaker level, and inbox backlog (`claude agents` will NOT show your hive\'s agents). Flag anyone stalled, over-budget, or breaker-armed.',
-  '4. Skim COMMANDS.md (hive root) for the Claude Code commands you can use — and run `mempalace wake-up` for a memory digest if the CLI is available.',
+  '4. Skim COMMANDS.md (hive root) for the engine commands you can use — and run `mempalace wake-up` for a memory digest if the CLI is available.',
   'Then begin orchestrating: triage requests, delegate work to the team, and keep everyone unblocked. You are fully autonomous — there is no approval queue, so handle tool-permission prompts in this session yourself (the human can approve them remotely from their phone).'
 ].join('\n');
 
@@ -396,7 +396,7 @@ export function useHive(config: HarnessConfig | null): void {
       const reg = await window.cth.hiveRegistry().catch(() => null);
       const godName = resolveGodName(reg?.agents?.[GOD_ID]?.name);
 
-      const godProvider = config.godProvider ?? 'claude';
+      const godProvider = config.godProvider ?? 'qwen';
       const godModel = config.godModel;
       const command = buildSpawnCommand(config, godModel, godProvider);
       const [exe, ...args] = tokenizeCommand(command.trim());
@@ -421,8 +421,8 @@ export function useHive(config: HarnessConfig | null): void {
       const god: Agent = {
         id: GOD_ID,
         name: godName,
-        character: 'michael',
-        accent: 'lemon',
+        character: 'dume',
+        accent: 'sky',
         description: 'god — runs the floor, triages requests, escalates only critical calls to you',
         project: 'hive',
         tmuxTarget: '',

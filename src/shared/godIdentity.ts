@@ -1,6 +1,6 @@
 /** God's identity before anyone has customized it — the app's own default,
  *  not a magic string sprinkled at every spawn call site. */
-export const DEFAULT_GOD_NAME = 'Michael';
+export const DEFAULT_GOD_NAME = 'DUM-E';
 
 /**
  * Resolve god's display name for a (re)spawn.

@@ -758,11 +758,11 @@ export class HiveManager {
       // configuration is never mutated. Both share the HIVE_SOCK wiring below.
       const preArgs: string[] = [];
       let degraded: string | undefined;
-      // Dispatch on the structured bridge descriptor (the foundation's `bridgeOf`
-      // derives {kind:'hooks'} from the legacy `hookBridge` for agy/codex, and
-      // returns the explicit {kind:'proxy'} for qwen). Two ways a hookless CLI
+      // Dispatch on the structured bridge descriptor (bridgeOf derives
+      // {kind:'hooks'} from the legacy hookBridge for codex, and returns the
+      // explicit {kind:'proxy'} for qwen). Two ways a hookless CLI
       // becomes a hive citizen:
-      //   - 'hooks' → install a config-file hook shim (agy translator / codex verbatim).
+      //   - 'hooks' → install a config-file hook shim (codex verbatim).
       //   - 'proxy' → spawn a loopback reverse-proxy sidecar that observes the CLI's
       //               LLM traffic and SYNTHESIZES the same HIVE_SOCK payloads.
       const desc = bridgeOf(meta.provider);
@@ -771,8 +771,7 @@ export class HiveManager {
         env.HIVE_SOCK = sock;
         try {
           if (desc.kind === 'hooks') {
-            if (desc.shim === 'agy') this.installAgyHooks();
-            else if (desc.shim === 'codex') {
+            if (desc.shim === 'codex') {
               env.CODEX_HOME = this.installCodexHooks(dir, meta.id);
               // Codex refuses to run hooks from a config dir without persisted
               // "hook trust" (normally an interactive gate). Our hooks.json is
@@ -788,17 +787,6 @@ export class HiveManager {
               // writable roots. Harmless outside auto mode.
               for (const d of this.sandboxWritableDirs(meta, dir, root, opts.extraWritableDirs)) preArgs.push('--add-dir', d);
             }
-            else if (desc.shim === 'pi') {
-              // Pi (earendil-works) has a rich pi.on(event) lifecycle. We drop a
-              // bundled extension into a PER-AGENT PI_CODING_AGENT_DIR (so the user's
-              // global ~/.pi is never touched) that posts cth-hook-shaped payloads to
-              // HIVE_SOCK on tool_call/agent_end and auto-approves tools when the floor
-              // is in auto mode. HIVE_AUTO_APPROVE (set in spawnAgentCore from
-              // config.autoMode) gates the auto-allow — Pam guardrail #5.
-              // LIVE-UNVERIFIED: the exact extension API surface needs BYOK keys to
-              // prove; the renderer idle inbox-wake nudge is the guaranteed drain.
-              env.PI_CODING_AGENT_DIR = this.installPiHooks(dir);
-            }
             else if (desc.shim === 'opencode') {
               // OpenCode (anomalyco/opencode) has no Claude-shaped Stop hook, but its
               // plugin API exposes a real session.idle event (god Decision 1). We drop
@@ -809,12 +797,6 @@ export class HiveManager {
               // idle inbox-wake nudge is the guaranteed drain fallback.
               env.OPENCODE_CONFIG_DIR = this.installOpenCodePlugin(dir, opts.theme);
             }
-            else if (desc.shim === 'gemini') {
-              // Point only this worker at a per-agent system settings file so
-              // the bridge is trusted and ~/.gemini/settings.json stays untouched.
-              env.GEMINI_CLI_SYSTEM_SETTINGS_PATH = this.installGeminiHooks(dir);
-            }
-            else if (desc.shim === 'grok') this.installGrokHooks();
           } else if (desc.kind === 'proxy') {
             // Stable per-spawn session id, stamped on every synthesized payload so
             // recordSession (registry resume key) and the cost ledger persist.
@@ -839,20 +821,7 @@ export class HiveManager {
             // the failure goes to log.jsonl, the renderer and the spawn result.
             if (port > 0) {
               const loopback = `http://127.0.0.1:${port}`;
-              if (meta.provider === 'crush') {
-                // Crush has NO base-URL env override, so the generic env-rewrite is a
-                // no-op for it. Route it instead via a per-agent CRUSH_GLOBAL_CONFIG
-                // whose chosen provider's base_url points at the loopback proxy
-                // (installCrushConfig — sibling of installCodexHooks). `upstream`
-                // (captured above from the inert sentinel env or cloud default) is the
-                // proxy's real target. Per-agent CRUSH_GLOBAL_DATA isolates session
-                // state from the user's global ~/.config/crush.
-                const crush = this.installCrushConfig(dir, loopback, desc.api, opts.theme);
-                env.CRUSH_GLOBAL_CONFIG = dir;
-                env.CRUSH_GLOBAL_DATA = crush.data;
-              } else {
-                env[desc.baseUrlEnv] = loopback;
-              }
+              env[desc.baseUrlEnv] = loopback;
             }
             else {
               degraded = `${meta.name} is running without hive events: its proxy bridge did not bind after ${PROXY_BIND_ATTEMPTS} attempts. Live status, cost and inbox wake will not work for this session. Respawn the agent to try again.`;
@@ -1873,81 +1842,12 @@ export class HiveManager {
    *  embedded quotes, so the shim path must be space-free (hive roots are).
    *  Runtime-scoped by AGENT_ID (the shim no-ops for non-hive agy sessions), so
    *  this global config never disturbs the user's own `agy` usage. Best-effort,
-   *  idempotent (only our own group is overwritten). */
-  private installAgyHooks(): void {
-    const root = this.root();
-    if (!root) return;
-    const shim = join(root, 'bin', 'agy-hook.cjs');
-    mkdirSync(join(root, 'bin'), { recursive: true });
-    writeFileSync(shim, AGY_HOOK_SHIM, 'utf8');
-    // Bundled node, not bare `node` — agy's hooks run with a stripped PATH too.
-    const tool = (event: string) => ({
-      matcher: '*',
-      hooks: [{ type: 'command', command: this.nodeRunUnquoted(shim, event), timeout: 0 }]
-    });
-    const plain = (event: string) => ({
-      hooks: [{ type: 'command', command: this.nodeRunUnquoted(shim, event), timeout: 0 }]
-    });
-    const group = {
-      PreToolUse: [tool('PreToolUse')],
-      PostToolUse: [tool('PostToolUse')],
-      PreInvocation: [plain('PreInvocation')],
-      PostInvocation: [plain('PostInvocation')],
-      Stop: [plain('Stop')]
-    };
-    const gem = join(homedir(), '.gemini');
-    for (const p of [join(gem, 'config', 'hooks.json'), join(gem, 'antigravity-cli', 'hooks.json')]) {
-      try {
-        mkdirSync(dirname(p), { recursive: true });
-        let existing: Record<string, unknown> = {};
-        if (existsSync(p)) {
-          try { existing = JSON.parse(readFileSync(p, 'utf8')) as Record<string, unknown>; } catch { existing = {}; }
-        }
-        existing['munder-hive'] = group;
-        writeFileSync(p, JSON.stringify(existing, null, 2), 'utf8');
-      } catch { /* best-effort per file */ }
-    }
-  }
-
   /** Official Google Gemini CLI lifecycle bridge. Gemini's hook payload is
    *  already snake_case; the shim maps event names into HookServer's common
    *  vocabulary and translates deny/steering replies back to Gemini.
    *
    *  The system settings path is per agent. Gemini merges object and array
    *  settings across layers, so auth and user settings remain in their normal
-   *  GEMINI_CLI_HOME while this trusted bridge stays isolated. */
-  private installGeminiHooks(dir: string): string {
-    const home = join(dir, '.gemini-hive');
-    const settingsPath = join(home, 'system-settings.json');
-    try {
-      mkdirSync(home, { recursive: true });
-      const shim = join(home, 'gemini-hook.cjs');
-      writeFileSync(shim, GEMINI_HOOK_SHIM, 'utf8');
-      const hook = (name: string, matcher?: string) => ({
-        ...(matcher ? { matcher } : {}),
-        sequential: true,
-        hooks: [{
-          name: `munder-hive-${name}`,
-          type: 'command',
-          command: this.nodeRunUnquoted(shim),
-          timeout: 30000
-        }]
-      });
-      const settings = {
-        hooksConfig: { enabled: true, notifications: false },
-        hooks: {
-          SessionStart: [hook('session-start')],
-          BeforeAgent: [hook('before-agent')],
-          BeforeTool: [hook('before-tool', '.*')],
-          AfterTool: [hook('after-tool', '.*')],
-          AfterAgent: [hook('after-agent')]
-        }
-      };
-      writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
-    } catch (e) { console.error('[hive] installGeminiHooks failed:', e); }
-    return settingsPath;
-  }
-
   /** Codex lifecycle-hook bridge → full hive parity for a `codex` worker (live
    *  status + Stop→inbox-drain), the codex counterpart of installAgyHooks().
    *
@@ -2157,23 +2057,6 @@ export class HiveManager {
    *
    *  LIVE-UNVERIFIED: Pi's exact extension-discovery path + event API need BYOK keys
    *  to confirm; this is written best-effort and wrapped so a wrong guess can never
-   *  break the spawn. The renderer nudge is the guaranteed drain regardless. */
-  private installPiHooks(dir: string): string {
-    const home = join(dir, '.pi-agent');
-    try {
-      // Pi discovers extensions under its agent dir; we write to the documented
-      // `extensions/` location (and keep it isolated per agent).
-      const extDir = join(home, 'extensions');
-      mkdirSync(extDir, { recursive: true });
-      writeFileSync(join(extDir, 'hive-bridge.js'), PI_EXTENSION, 'utf8');
-      // A manifest so Pi auto-loads the extension on start (best-effort; harmless if
-      // Pi ignores it). Kept minimal and hive-authored.
-      const manifest = { name: 'munder-hive-bridge', version: '0.3.1', main: 'extensions/hive-bridge.js', auto: true };
-      writeFileSync(join(home, 'extensions.json'), JSON.stringify(manifest, null, 2), 'utf8');
-    } catch (e) { console.error('[hive] installPiHooks failed:', e); }
-    return home;
-  }
-
   /** OpenCode (anomalyco/opencode) bridge — god Decision 1 (native plugin, not proxy).
    *  OpenCode has no Claude-shaped Stop hook, but its plugin API exposes a real
    *  `session.idle` lifecycle event. We drop a bundled PLUGIN into a PER-AGENT config
@@ -2215,94 +2098,6 @@ export class HiveManager {
       }
     } catch (e) { console.error('[hive] installOpenCodePlugin failed:', e); }
     return home;
-  }
-
-  /** Crush (charmbracelet/crush) proxy routing. Crush has NO base-URL env override, so
-   *  the generic proxy env-rewrite is a no-op for it; instead we write a per-agent
-   *  CRUSH_GLOBAL_CONFIG whose standard providers' `base_url` all point at the loopback
-   *  proxy (so whatever model the worker picks, its LLM traffic routes through the
-   *  sidecar → synthesized Status/Stop/cost → status goes idle → the terminal
-   *  work-order + renderer nudge deliver mail). A per-agent CRUSH_GLOBAL_DATA isolates
-   *  session state from the user's global ~/.config/crush. Keys ride BYOK env vars
-   *  (Crush reads ANTHROPIC_API_KEY/OPENAI_API_KEY/… directly), so none are written
-   *  here. `api` follows the proxy's wire shape (advisory). Returns the config + data
-   *  paths for the spawn env.
-   *
-   *  LIVE-UNVERIFIED: the single-upstream proxy serves one provider/endpoint shape at a
-   *  time — for full synthesized events pick a model whose provider matches the
-   *  configured upstream (or a local OpenAI-compatible endpoint). Cross-provider mixing
-   *  is humanQA; the renderer nudge still delivers mail regardless. */
-  private installCrushConfig(dir: string, loopbackUrl: string, api: 'openai' | 'anthropic', theme?: 'light' | 'dark'): { config: string; data: string } {
-    const config = join(dir, 'crush.json');
-    const data = join(dir, '.crush-data');
-    try {
-      mkdirSync(data, { recursive: true });
-      // Override base_url → loopback for ONLY the provider whose wire-shape matches
-      // the proxy (`api`): the single-upstream sidecar forwards bytes unchanged, so
-      // routing a different-wire/host provider (e.g. anthropic when api='openai', or
-      // openrouter/groq which are openai-wire but different hosts) through it would
-      // hit the wrong endpoint and the call would fail. Those are left to their real
-      // upstreams (working calls, un-proxied — no synthesized events, but mail still
-      // drains via the renderer nudge + the pty-quiescence idle fallback). For the
-      // default god (openai-wire) and a local OpenAI-compatible endpoint this routes
-      // through the proxy cleanly. Cross-provider Crush-via-proxy is on-device
-      // live-verify (Dwight verify-crush MF1; the default god model is openai-wire to
-      // match). Literal loopback (Dwight's b1 — no ${VAR} expansion edge cases);
-      // Crush merges config so only base_url is rewritten.
-      const wireProvider = api === 'anthropic' ? 'anthropic' : 'openai';
-      const providers: Record<string, { base_url: string }> = { [wireProvider]: { base_url: loopbackUrl } };
-      // Theme: Crush ships one (dark) palette and no light theme, but
-      // `options.tui.transparent` stops it painting its own background, so it
-      // sits on xterm's, which follows the app theme. Set whenever the app
-      // passes a theme, dark included, so both modes look the same way.
-      const options = theme ? { tui: { transparent: true } } : undefined;
-      writeFileSync(config, JSON.stringify(options ? { providers, options } : { providers }, null, 2), 'utf8');
-    } catch (e) { console.error('[hive] installCrushConfig failed:', e); }
-    return { config, data };
-  }
-
-  /** Grok lifecycle-hook bridge → live hive status, session capture, guarded
-   *  inbox delivery, and operator gates for `grok` workers.
-   *
-   *  Grok supports the same hook events and decision vocabulary as Claude Code,
-   *  but its stdin payload uses camelCase keys. A small adapter normalizes those
-   *  keys to HookServer's Claude-shaped contract. The hook is installed in the
-   *  user's global Grok hook directory because global hooks are trusted and
-   *  Grok sessions/resume stay in the user's normal GROK_HOME. The adapter is
-   *  strictly scoped by AGENT_ID, so ordinary Grok sessions exit without doing
-   *  anything. Best-effort and idempotent. */
-  private installGrokHooks(): void {
-    const root = this.root();
-    if (!root) return;
-    try {
-      const shim = join(root, 'bin', 'grok-hook.cjs');
-      mkdirSync(join(root, 'bin'), { recursive: true });
-      writeFileSync(shim, GROK_HOOK_SHIM, 'utf8');
-      const tool = (matcher?: string) => ({
-        ...(matcher ? { matcher } : {}),
-        // Let Grok apply its event-aware defaults (5s normally, 600s for Stop).
-        // Grok is a HOOK bridge (not a proxy sidecar), so it is hit by the same
-        // `node: command not found` 127 — bundled node here too.
-        hooks: [{ type: 'command', command: this.nodeRun(shim) }]
-      });
-      const hooks = {
-        PreToolUse: [tool('.*')],
-        PostToolUse: [tool('.*')],
-        Stop: [tool()],
-        SubagentStop: [tool('.*')],
-        SessionStart: [tool('.*')],
-        UserPromptSubmit: [tool()],
-        PreCompact: [tool('.*')],
-        PostCompact: [tool('.*')]
-      };
-      const hookDir = join(homedir(), '.grok', 'hooks');
-      mkdirSync(hookDir, { recursive: true });
-      writeFileSync(
-        join(hookDir, 'munder-hive.json'),
-        JSON.stringify({ hooks }, null, 2),
-        'utf8'
-      );
-    } catch (e) { console.error('[hive] installGrokHooks failed:', e); }
   }
 
   /** Write the live fleet snapshot Michael reads (`fleet.json`, gitignored).

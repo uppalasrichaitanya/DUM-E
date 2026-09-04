@@ -13,7 +13,7 @@ import { MemoryPanel } from '@/components/MemoryPanel';
 import { AgentDetailPanel } from '@/components/AgentDetailPanel';
 import { AgentStrip } from '@/components/AgentStrip';
 import { AddAgentModal } from '@/components/AddAgentModal';
-import { MichaelBooting } from '@/components/MichaelBooting';
+import { GodBooting } from '@/components/GodBooting';
 import { OnboardingWizard } from '@/components/OnboardingWizard';
 import { HivePicker } from '@/components/HivePicker';
 import { QuitWarningModal, type ClosingTimeState } from '@/components/QuitWarningModal';
@@ -401,7 +401,7 @@ export function App() {
         <div style={{ flex: 1, minHeight: 0, minWidth: 0, position: 'relative' }}>
           <OfficeFloor />
           <MemoryPanel />
-          {agentCount === 0 && godStatus === 'booting' && <MichaelBooting />}
+          {agentCount === 0 && godStatus === 'booting' && <GodBooting />}
           {agentCount === 0 && godStatus !== 'booting' && (
             <div style={{
               position: 'absolute', inset: 0,

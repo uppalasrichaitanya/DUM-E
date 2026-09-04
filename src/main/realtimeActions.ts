@@ -25,8 +25,8 @@
  *     all-agent op, are VOICE-FORBIDDEN even with a valid confirm — rejected
  *     outright, no pending created.
  *
- * Every committed action is attributed to actor `michael-voice` (a log stamp on
- * every verb + `from: michael-voice` on messages). rt-7 deepens this into a live
+ * Every committed action is attributed to actor `god-voice` (a log stamp on
+ * every verb + `from: god-voice` on messages). rt-7 deepens this into a live
  * god-PTY cross-notify; rt-5 just needs the attribution present.
  *
  * Thin wrappers ONLY — no new orchestration logic. Each verb maps onto a main fn
@@ -41,7 +41,7 @@ import { inferAgentProvider } from '../shared/agentProvider';
 import { clearCommandForProvider } from '../shared/providerAutomation';
 import { resolveGodName } from '../shared/godIdentity';
 
-export const VOICE_ACTOR = 'michael-voice';
+export const VOICE_ACTOR = 'god-voice';
 
 /** A minimal spawn spec — index.ts adapts it to its AgentSpawnOptions + spawnAgentCore. */
 export interface RealtimeSpawnSpec {
@@ -160,9 +160,7 @@ const SETTING_POLICY: Record<string, {
 const PENDING_TTL_MS = 120_000;
 
 const PROVIDER_COMMAND: Record<string, string> = {
-  claude: 'claude', codex: 'codex', antigravity: 'antigravity', gemini: 'gemini',
-  opencode: 'opencode', crush: 'crush', pi: 'pi', qwen: 'qwen', copilot: 'copilot',
-  cursor: 'cursor-agent'
+  claude: 'claude', codex: 'codex', opencode: 'opencode', qwen: 'qwen'
 };
 
 /** Bare affirmations that must NEVER authorize a destructive op on their own —
@@ -216,8 +214,8 @@ function resolveAgent(target: string, reg: Registry): ResolvedAgent | { error: s
   // exact id
   const byId = entries.find(([id]) => id.toLowerCase() === t);
   if (byId) return mk(byId[0], byId[1]);
-  // 'god' / 'michael' alias for the orchestrator
-  if ((t === 'god' || t === 'michael' || t === 'the god') && reg.godId)
+  // 'god' / 'dum-e' alias for the orchestrator
+  if ((t === 'god' || t === 'dum-e' || t === 'the god') && reg.godId)
     return mk(reg.godId, reg.agents[reg.godId] ?? {});
   // exact name, prefer live
   const byName = entries.filter(([, m]) => (m.name || '').toLowerCase() === t);

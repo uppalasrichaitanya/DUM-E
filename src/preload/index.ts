@@ -1286,7 +1286,7 @@ const api = {
     | { ok: false; error: string; code?: string }
   > => ipcRenderer.invoke('realtime:mintToken', req ?? {}),
   // rt-5 voice ACTIONS — the renderer holds NO policy; main (realtimeActions.ts) owns
-  // the tiering, two-step verbal confirm, hard allowlist, and michael-voice
+  // the tiering, two-step verbal confirm, hard allowlist, and god-voice
   // attribution. These just forward {verb,...args} and speak back `spoken`.
   realtimeAction: (
     payload: { verb: string } & Record<string, unknown>

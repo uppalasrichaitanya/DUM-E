@@ -2638,13 +2638,12 @@ async function spawnAgentCore(opts: AgentSpawnOptions, owner: Electron.WebConten
       console.error('[worktree] isolation failed:', e);
     }
   }
-  // Proxy-tier CLIs (qwen/crush) route their LLM traffic through a loopback sidecar
+  // Proxy-tier CLIs (qwen) route their LLM traffic through a loopback sidecar
   // whose UPSTREAM is read from the preset's bridge.baseUrlEnv inside hive.ensureAgent.
   // For the local-LLM path, feed the user's configured base URL as that upstream so the
   // proxy forwards to their endpoint (Ollama/LM Studio/vLLM). Set on process.env BEFORE
-  // ensureAgent reads it. (Crush's baseUrlEnv is an inert sentinel used ONLY as this
-  // upstream source; its real routing is the per-agent CRUSH_GLOBAL_CONFIG base_url.)
-  if (opts.hive && (provider === 'crush' || provider === 'qwen')) {
+  // ensureAgent reads it.
+  if (opts.hive && provider === 'qwen') {
     const bridge = providerPreset(provider).bridge;
     const baseUrl = readConfig().providerBaseUrls?.[provider];
     if (bridge && bridge.kind === 'proxy' && baseUrl) process.env[bridge.baseUrlEnv] = baseUrl;
@@ -2843,11 +2842,11 @@ async function spawnAgentCore(opts: AgentSpawnOptions, owner: Electron.WebConten
     opts.env = { ...(opts.env ?? {}), ...nonInteractiveEnv };
   }
   // ── BYOK keys + per-provider config for the non-Claude CLI engines (v0.3.1) ──
-  // OpenCode / Crush / pi / qwen read BYOK API keys from standard env vars and, for
+  // OpenCode / qwen read BYOK API keys from standard env vars and, for
   // the local-LLM path, a per-provider base URL. Keys are write-only in the broker
   // (read MAIN-ONLY here, never logged); base URLs ride HarnessConfig. Claude/codex
-  // use their own login, so they skip this. Pam guardrails #3/#4/#5.
-  if (opts.hive && (provider === 'opencode' || provider === 'crush' || provider === 'pi' || provider === 'qwen')) {
+  // use their own login, so they skip this.
+  if (opts.hive && (provider === 'opencode' || provider === 'qwen')) {
     const cfg = readConfig();
     const extra: Record<string, string> = {};
     // 1) BYOK keys — LEAST-PRIVILEGE (Pam/Jim NIT-2): inject ONLY the key for the
@@ -4249,22 +4248,22 @@ registerRealtimeIpc();
 // Thin adapters over the SAME main fns the god PTY already uses. ALL of the safety
 // spine — soft-vs-destructive tiering, the two-step verbal echo-back confirm, the
 // distinct-token rule, the hard allowlist (kill-god / mass-ops forbidden), and the
-// michael-voice attribution — lives in ./realtimeActions. This site only injects
+// god-voice attribution — lives in ./realtimeActions. This site only injects
 // the existing functions; it adds NO new orchestration logic.
 // ─── IPC: Realtime Michael completion watcher (rt-12, Phase 2) ───────────────
 // Jim's net-new engine (realtimeCompletionWatcher.ts) detects a voice-dispatched
-// task finishing (card→done OR a done-reply in michael-voice's inbox) and EMITS it;
+// task finishing (card→done OR a done-reply in god-voice's inbox) and EMITS it;
 // I own the seam — inject the hive read deps, push completions to the live session
 // (so Michael speaks them unprompted), and bridge waitFor / queue-drain over IPC.
 const completionWatcher = initCompletionWatcher({
   readTasks: () => { const t = hive.tasks() as { tasks?: TaskCard[] }; return Array.isArray(t?.tasks) ? t.tasks : []; },
-  // Voice dispatches go out as from:michael-voice, so assignee done-replies land here.
+  // Voice dispatches go out as from:god-voice, so assignee done-replies land here.
   readInbox: () => {
-    // Voice dispatches go out from:michael-voice, so done-replies normally land in its
+    // Voice dispatches go out from:god-voice, so done-replies normally land in its
     // inbox — but an assignee may address god out of habit. Merge both inboxes (de-dupe
     // by id) so a god-addressed completion isn't missed; the detector filters by sender.
     try {
-      const mv = hive.inbox('michael-voice') as unknown as InboxMessage[];
+      const mv = hive.inbox('god-voice') as unknown as InboxMessage[];
       const godId = hive.registry().godId;
       const god = godId ? (hive.inbox(godId) as unknown as InboxMessage[]) : [];
       const seen = new Set<string>();

@@ -204,12 +204,12 @@ export interface HarnessConfig {
   defaultCommand: string;
   /** Default model for newly spawned agents (e.g. 'claude-sonnet-4-6[1m]'); unset = CLI default. */
   defaultModel?: string;
-  /** Which provider powers the GOD orchestrator ("Michael"). The persona is
-   *  constant; only its engine is selectable. Default 'claude'. Eligible providers
-   *  are those that can receive inbox (claude/codex/antigravity/qwen). */
+  /** Which provider powers the GOD orchestrator ("DUM-E"). The persona is
+   *  constant; only its engine is selectable. Default 'qwen'. Eligible providers
+   *  are those that can receive inbox (claude/codex/qwen/opencode). */
   godProvider?: AgentProvider;
   /** The model GOD runs on. Unset falls back to the provider preset's
-   *  `recommendedOrchestratorModel`, then MODEL_GOD. Default 'claude-opus-4-8'. */
+   *  `recommendedOrchestratorModel`, then MODEL_GOD. Default 'qwen3-coder-plus'. */
   godModel?: string;
   /** Per-server consent state for the default MCP bundle, keyed by catalog id.
    *  Seeded from MCP_CATALOG (safe-readonly ON, write/secret OFF); the user flips
@@ -419,13 +419,13 @@ const DEFAULTS: HarnessConfig = {
   registeredRepos: [],
   autoMode: true,
   orchestratorMaySpawn: false,
-  defaultCommand: 'claude',
-  godProvider: 'claude',
-  godModel: 'claude-opus-4-8',
+  defaultCommand: 'qwen',
+  godProvider: 'qwen',
+  godModel: 'qwen3-coder-plus',
   // Global default model for every agent that hasn't picked one explicitly — wins
-  // over the role-based tiers (modelForRole) in the spawn handler, so all agents
-  // (incl. god) default to Fable 5. A per-agent model choice still overrides it.
-  defaultModel: 'claude-fable-5',
+  // over the role-based tiers (modelForRole) in the spawn handler. A per-agent
+  // model choice still overrides it. Qwen-first roster: unset = engine default.
+  defaultModel: undefined,
   // Seeded from the MCP catalog so the consent defaults never drift from it
   // (safe-readonly ON, write/secret OFF).
   mcpDefaults: defaultMcpDefaults(),
@@ -719,11 +719,11 @@ export function resetConfig(): HarnessConfig {
   return withTriggerDefaults({ ...DEFAULTS });
 }
 
-/** Model ids by tier (Lane A #6.4). Kept in sync with AGENT_MODELS in
- *  src/renderer/src/store/config.ts. */
-const MODEL_GOD = 'claude-opus-4-8';                  // orchestration — highest capability
-const MODEL_WORKER = 'claude-sonnet-4-6';             // general execution
-const MODEL_HELPER = 'claude-haiku-4-5-20251001';     // narrow, cheap helpers
+/** Model ids by tier. Kept in sync with the model catalog in
+ *  src/shared/modelCatalog.json. */
+const MODEL_GOD = 'qwen3-coder-plus';                  // orchestration — highest capability
+const MODEL_WORKER = 'qwen3-coder-plus';               // general execution
+const MODEL_HELPER = 'qwen3-coder';                   // narrow, cheap helpers
 
 /** Minimal structural shape for tiering — a subset of AgentMeta so config.ts
  *  stays free of a hive.ts import. */
@@ -744,8 +744,8 @@ export function modelForRole(
 ): string | undefined {
   if (meta.isGod) {
     // GOD engine is selectable: an explicit godModel wins, else the chosen
-    // provider's recommended orchestrator model, else the legacy Opus default.
-    const preset = providerPreset(config?.godProvider ?? 'claude');
+    // provider's recommended orchestrator model, else the tier default.
+    const preset = providerPreset(config?.godProvider ?? 'qwen');
     return config?.godModel ?? preset.recommendedOrchestratorModel ?? MODEL_GOD;
   }
   const hay = `${meta.role ?? ''} ${(meta.capabilities ?? []).join(' ')}`.toLowerCase();
