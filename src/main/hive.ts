@@ -741,18 +741,17 @@ export class HiveManager {
     // Stop→inbox-drain — without Claude installed at all.
     //
     // How the prompt rides in differs by CLI:
-    //  - agy takes it under a flag (`agy -i "<prompt>"`) → push [flag, prompt].
-    //  - codex/grok take it POSITIONALLY (`codex|grok "<prompt>"`) → push the
+    //  - qwen/opencode take it under a flag (`-i` / `--prompt`) → push [flag, prompt].
+    //  - codex takes it POSITIONALLY (`codex "<prompt>"`) → push the
     //    bare prompt as a trailing arg (node-pty passes argv literally, so it
     //    arrives as one positional argument after codex's own flags).
     if (!isHiveAwareProvider(meta.provider)) {
       const preset = providerPreset(meta.provider ?? 'claude');
       const flag = preset.initialPromptFlag;
       const prompt = this.injectedPrompt(meta, dir, root, opts.semanticMemory ?? false, opts.knowledgeGraph ?? false, opts.kgCliPath);
-      // agy, codex, and grok expose a Claude-style lifecycle-hook surface, so each
+      // codex and opencode expose a Claude-style lifecycle-hook surface, so each
       // gets the SAME live status + Stop→inbox-drain Claude does — selected by the
-      // preset's `hookBridge`. agy needs a translating shim (its hook stdin/stdout
-      // shape differs from Claude's); codex reuses the Claude `cth-hook` shim
+      // preset's bridge. codex reuses the Claude `cth-hook` shim
       // verbatim (its hook payload + response contract are already Claude-shaped)
       // and is isolated to a per-agent CODEX_HOME so the user's global Codex
       // configuration is never mutated. Both share the HIVE_SOCK wiring below.
@@ -1119,7 +1118,7 @@ export class HiveManager {
   /**
    * W3 — build the per-agent `mcpServers` map from the default catalog. Includes a
    * server only when it's enabled (catalog ∩ consent), scopes filesystem/git to the
-   * agent cwd (never whole-disk), and namespaces every id `munder-<id>` so a server
+   * agent cwd (never whole-disk), and namespaces every id `dum-e-<id>` so a server
    * of the same name in the user's own ~/.claude is never clobbered. A write/secret
    * server is included ONLY on an explicit `enabled:true` consent — never via a
    * default — so a malformed/partial config can't silently arm a keyed server.
@@ -1140,7 +1139,7 @@ export class HiveManager {
       // Replace the `<cwd>` placeholder (filesystem/git) with the agent cwd at merge
       // time so these stay strictly workspace-scoped.
       const args = e.spec.args.map((a) => (a === '<cwd>' ? cwd : a));
-      out[`munder-${e.id}`] = {
+      out[`dum-e-${e.id}`] = {
         command: e.spec.command,
         args,
         ...(e.spec.env ? { env: e.spec.env } : {})
@@ -1378,7 +1377,7 @@ export class HiveManager {
     // us) was invisible to every investigation.
     const rt = this.runtimeInfo();
     const runtimeLine = rt
-      ? `RUNNING BUILD: Munder Difflin v${rt.version}, ${rt.packaged ? 'packaged app' : 'local dev build'}${rt.appPath ? `, from ${rt.appPath}` : ''}. Say this version if asked which one is running, and do not assume behaviour from an older one. A local dev build inherits the launching shell's environment (umask included) where a packaged app does not, so file modes and inherited env can legitimately differ between the two. \`log.jsonl\` records an \`app-start\` event on every launch, which is how you spot a restart or a build switch.`
+      ? `RUNNING BUILD: DUM-E v${rt.version}, ${rt.packaged ? 'packaged app' : 'local dev build'}${rt.appPath ? `, from ${rt.appPath}` : ''}. Say this version if asked which one is running, and do not assume behaviour from an older one. A local dev build inherits the launching shell's environment (umask included) where a packaged app does not, so file modes and inherited env can legitimately differ between the two. \`log.jsonl\` records an \`app-start\` event on every launch, which is how you spot a restart or a build switch.`
       : '';
     // Item 11: god could not find the spawn queue. The mechanism has worked since
     // v0.4.4, but nothing told him it existed — the prompt said "spawn" without
@@ -1831,25 +1830,8 @@ export class HiveManager {
     if (!existsSync(dir)) return 0;
     try { return readdirSync(dir).filter((f) => f.endsWith('.json')).length; } catch { return 0; }
   }
-  /** Install the Antigravity (`agy`) lifecycle-hook bridge: write the normalizer
-   *  shim and merge a `munder-hive` hook group into agy's global hooks.json so a
-   *  Gemini worker reports PreToolUse/PostToolUse/Stop/PreInvocation/PostInvocation
-   *  to this HookServer (live status + guarded idle delivery), reusing the Claude pipeline.
-   *
-   *  Two agy-isms handled: (1) antigravity-cli#49 — agy LOADS hooks from
-   *  `~/.gemini/antigravity-cli/hooks.json` but TRIGGERS from `~/.gemini/config/
-   *  hooks.json`, so we write BOTH; (2) commands go to cmd.exe and agy mangles
-   *  embedded quotes, so the shim path must be space-free (hive roots are).
-   *  Runtime-scoped by AGENT_ID (the shim no-ops for non-hive agy sessions), so
-   *  this global config never disturbs the user's own `agy` usage. Best-effort,
-  /** Official Google Gemini CLI lifecycle bridge. Gemini's hook payload is
-   *  already snake_case; the shim maps event names into HookServer's common
-   *  vocabulary and translates deny/steering replies back to Gemini.
-   *
-   *  The system settings path is per agent. Gemini merges object and array
-   *  settings across layers, so auth and user settings remain in their normal
   /** Codex lifecycle-hook bridge → full hive parity for a `codex` worker (live
-   *  status + Stop→inbox-drain), the codex counterpart of installAgyHooks().
+   *  status + Stop→inbox-drain).
    *
    *  Codex's hook contract is already Claude-shaped: snake_case stdin
    *  (hook_event_name/tool_name/tool_input/session_id/cwd) and a matching response
@@ -1924,7 +1906,7 @@ export class HiveManager {
       if (shim) {
         const events = ['PreToolUse', 'PostToolUse', 'Stop', 'SubagentStop',
           'SessionStart', 'UserPromptSubmit', 'PreCompact', 'PostCompact'];
-        config += '\n# --- munder-hive lifecycle hooks (auto-generated; do not edit) ---\n';
+        config += '\n# --- dum-e-hive lifecycle hooks (auto-generated; do not edit) ---\n';
         for (const ev of events) {
           config += `\n[[hooks.${ev}]]\n[[hooks.${ev}.hooks]]\ntype = "command"\ncommand = '${this.nodeRunUnquoted(shim)}'\ntimeout = 30\n`;
         }
@@ -2046,17 +2028,6 @@ export class HiveManager {
     }
   }
 
-  /** Pi (earendil-works) bridge. Pi has a rich `pi.on(event, …)` lifecycle but no
-   *  Claude-shaped hook file; instead we drop a bundled EXTENSION into a PER-AGENT
-   *  PI_CODING_AGENT_DIR (so the user's global ~/.pi is never mutated) that, when Pi
-   *  loads it, posts cth-hook-shaped payloads to HIVE_SOCK on tool_call/agent_end and
-   *  auto-approves tool calls when the floor is in auto mode (HIVE_AUTO_APPROVE).
-   *  Emitting an `agent_end`→`Stop` keeps the harness status in step (→ idle), which
-   *  lets the renderer idle inbox-wake nudge deliver mail. Returns the per-agent dir
-   *  for PI_CODING_AGENT_DIR.
-   *
-   *  LIVE-UNVERIFIED: Pi's exact extension-discovery path + event API need BYOK keys
-   *  to confirm; this is written best-effort and wrapped so a wrong guess can never
   /** OpenCode (anomalyco/opencode) bridge — god Decision 1 (native plugin, not proxy).
    *  OpenCode has no Claude-shaped Stop hook, but its plugin API exposes a real
    *  `session.idle` lifecycle event. We drop a bundled PLUGIN into a PER-AGENT config
@@ -2606,70 +2577,6 @@ process.stdin.on('end', () => {
 });
 `;
 
-// ─── agy-hook shim (written to <hive>/bin/agy-hook.cjs) ──────────────────────
-// Antigravity's `agy` CLI fires lifecycle hooks (PreToolUse/PostToolUse/Stop/
-// PreInvocation/PostInvocation) but with a DIFFERENT stdin shape than Claude
-// (conversationId / toolCall{name,args} / workspacePaths, and no hook_event_name
-// — the event arrives as argv from the hooks.json command). This shim normalizes
-// that into the same HookPayload the HookServer already consumes, so status,
-// inbox-drain-on-Stop, and tool gating are reused UNCHANGED, then translates the
-// server's Claude-shaped response back into agy's stdout contract (decision:
-// allow|deny|block + a message). Scoped by AGENT_ID: a personal agy session
-// (no AGENT_ID in env) is a no-op, so the global hooks.json never disturbs the
-// user's own agy usage — only hive workers (spawned with AGENT_ID set) bridge.
-// NOTE (agy bug, antigravity-cli#49): the loader reads ~/.gemini/antigravity-cli/
-// hooks.json but the trigger reads ~/.gemini/config/hooks.json — we write BOTH.
-const AGY_HOOK_SHIM = `#!/usr/bin/env node
-'use strict';
-const net = require('net');
-const event = process.argv[2] || 'Unknown';
-const agentId = process.env.AGENT_ID || null;
-let data = '';
-process.stdin.setEncoding('utf8');
-process.stdin.on('data', (d) => { data += d; });
-process.stdin.on('end', () => {
-  const sock = process.env.HIVE_SOCK;
-  if (!agentId || !sock) { process.exit(0); } // not a hive worker → ignore
-  let agy = {};
-  try { agy = JSON.parse(data || '{}'); } catch (_) {}
-  const tc = agy.toolCall || {};
-  const payload = {
-    hook_event_name: event,
-    agent_id: agentId,
-    session_id: agy.conversationId,
-    transcript_path: agy.transcriptPath,
-    cwd: Array.isArray(agy.workspacePaths) ? agy.workspacePaths[0] : undefined,
-    tool_name: tc.name,
-    tool_input: tc.args
-  };
-  let resp = '';
-  const done = () => {
-    // Translate the HookServer's Claude-shaped reply into agy's contract. CRITICAL:
-    // agy treats ANY object written to stdout as a decision and FAIL-CLOSES (an
-    // empty/decision-less object = DENY). So emit JSON ONLY when there's a real
-    // directive (deny/block/steer); otherwise write NOTHING — no output = allow.
-    let out = null;
-    try {
-      const r = JSON.parse(resp || '{}');
-      if (r.decision === 'block') out = { decision: 'block', reason: r.reason, stopReason: r.reason, systemMessage: r.reason };
-      else if (r.hookSpecificOutput && r.hookSpecificOutput.permissionDecision === 'deny') out = { decision: 'deny', reason: r.hookSpecificOutput.permissionDecisionReason };
-      else if (r.continue === false) out = { decision: 'block', stopReason: r.stopReason };
-      else if (r.hookSpecificOutput && r.hookSpecificOutput.additionalContext) out = { systemMessage: r.hookSpecificOutput.additionalContext };
-    } catch (_) {}
-    if (out) { try { process.stdout.write(JSON.stringify(out)); } catch (_) {} }
-    process.exit(0);
-  };
-  try {
-    const c = net.createConnection(sock, () => c.write(JSON.stringify(payload) + '\\n'));
-    c.setEncoding('utf8');
-    c.on('data', (d) => { resp += d; });
-    c.on('end', done);
-    c.on('error', () => process.exit(0));
-    setTimeout(() => process.exit(0), 5000).unref();
-  } catch (_) { process.exit(0); }
-});
-`;
-
 // ─── pi bridge extension (written to <agentDir>/.pi-agent/extensions/) ───────
 // A bundled extension for Pi (earendil-works). Pi exposes a pi.on(event,…)
 // lifecycle; this posts cth-hook-shaped payloads to HIVE_SOCK on tool_call /
@@ -2969,130 +2876,3 @@ server.listen(0, '127.0.0.1', function () {
 });
 `;
 
-// Official Gemini CLI bridge. Gemini already sends snake_case payload fields;
-// normalize its event names, then translate HookServer decisions back into
-// Gemini's documented hook output contract.
-const GEMINI_HOOK_SHIM = `#!/usr/bin/env node
-'use strict';
-const net = require('net');
-const agentId = process.env.AGENT_ID || null;
-let data = '';
-process.stdin.setEncoding('utf8');
-process.stdin.on('data', (d) => { data += d; });
-process.stdin.on('end', () => {
-  const sock = process.env.HIVE_SOCK;
-  if (!agentId || !sock) { process.exit(0); }
-  let gemini = {};
-  try { gemini = JSON.parse(data || '{}'); } catch (_) {}
-  const names = {
-    SessionStart: 'SessionStart',
-    BeforeAgent: 'UserPromptSubmit',
-    BeforeTool: 'PreToolUse',
-    AfterTool: 'PostToolUse',
-    AfterAgent: 'Stop'
-  };
-  const payload = {
-    ...gemini,
-    hook_event_name: names[gemini.hook_event_name] || gemini.hook_event_name || 'Unknown',
-    agent_id: agentId
-  };
-  let resp = '';
-  const done = () => {
-    let out = null;
-    try {
-      const r = JSON.parse(resp || '{}');
-      if (r.continue === false) out = { continue: false, stopReason: r.stopReason };
-      else if (r.decision === 'block') out = { decision: 'deny', reason: r.reason };
-      else if (r.hookSpecificOutput && r.hookSpecificOutput.permissionDecision === 'deny') {
-        out = { decision: 'deny', reason: r.hookSpecificOutput.permissionDecisionReason };
-      } else if (r.hookSpecificOutput && r.hookSpecificOutput.additionalContext) {
-        out = { hookSpecificOutput: { additionalContext: r.hookSpecificOutput.additionalContext } };
-      }
-    } catch (_) {}
-    if (out) { try { process.stdout.write(JSON.stringify(out)); } catch (_) {} }
-    process.exit(0);
-  };
-  try {
-    const c = net.createConnection(sock, () => c.write(JSON.stringify(payload) + '\\n'));
-    c.setEncoding('utf8');
-    c.on('data', (d) => { resp += d; });
-    c.on('end', done);
-    c.on('error', () => process.exit(0));
-    setTimeout(() => process.exit(0), 5000).unref();
-  } catch (_) { process.exit(0); }
-});
-`;
-
-// ─── grok-hook shim (written to <hive>/bin/grok-hook.cjs) ───────────────────
-// Grok's lifecycle events and decisions are Claude-compatible, but the wire
-// payload is camelCase and uses snake_case event values. Normalize the input for
-// HookServer and translate its Claude-style permission denial into Grok's direct
-// decision form. Scoped by AGENT_ID so the trusted global hook is inert outside
-// Munder-spawned workers.
-const GROK_HOOK_SHIM = `#!/usr/bin/env node
-'use strict';
-const net = require('net');
-const agentId = process.env.AGENT_ID || null;
-let data = '';
-process.stdin.setEncoding('utf8');
-process.stdin.on('data', (d) => { data += d; });
-process.stdin.on('end', () => {
-  const sock = process.env.HIVE_SOCK;
-  if (!agentId || !sock) { process.exit(0); }
-  let grok = {};
-  try { grok = JSON.parse(data || '{}'); } catch (_) {}
-  const names = {
-    pre_tool_use: 'PreToolUse',
-    post_tool_use: 'PostToolUse',
-    post_tool_use_failure: 'PostToolUseFailure',
-    permission_denied: 'PermissionDenied',
-    stop: 'Stop',
-    stop_failure: 'StopFailure',
-    session_start: 'SessionStart',
-    session_end: 'SessionEnd',
-    user_prompt_submit: 'UserPromptSubmit',
-    notification: 'Notification',
-    subagent_start: 'SubagentStart',
-    subagent_stop: 'SubagentStop',
-    pre_compact: 'PreCompact',
-    post_compact: 'PostCompact'
-  };
-  const payload = {
-    hook_event_name: names[grok.hookEventName] || grok.hookEventName || 'Unknown',
-    agent_id: agentId,
-    session_id: grok.sessionId,
-    cwd: grok.cwd || grok.workspaceRoot,
-    tool_name: grok.toolName,
-    tool_input: grok.toolInput,
-    stop_hook_active: grok.stopHookActive,
-    prompt: grok.prompt,
-    source: grok.source,
-    notification_type: grok.notificationType,
-    message: grok.message
-  };
-  let resp = '';
-  const done = () => {
-    let out = null;
-    try {
-      const r = JSON.parse(resp || '{}');
-      if (r.continue === false) out = { continue: false, stopReason: r.stopReason };
-      else if (r.decision === 'block') out = { decision: 'block', reason: r.reason };
-      else if (r.hookSpecificOutput && r.hookSpecificOutput.permissionDecision === 'deny') {
-        out = { decision: 'deny', reason: r.hookSpecificOutput.permissionDecisionReason };
-      } else if (r.hookSpecificOutput && r.hookSpecificOutput.additionalContext) {
-        out = r;
-      }
-    } catch (_) {}
-    if (out) { try { process.stdout.write(JSON.stringify(out)); } catch (_) {} }
-    process.exit(0);
-  };
-  try {
-    const c = net.createConnection(sock, () => c.write(JSON.stringify(payload) + '\\n'));
-    c.setEncoding('utf8');
-    c.on('data', (d) => { resp += d; });
-    c.on('end', done);
-    c.on('error', () => process.exit(0));
-    setTimeout(() => process.exit(0), 5000).unref();
-  } catch (_) { process.exit(0); }
-});
-`;
