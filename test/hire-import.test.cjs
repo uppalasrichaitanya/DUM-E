@@ -9,7 +9,7 @@ const loadTs = require('./load-ts.cjs');
 
 const { readHireManifestFiles } = loadTs('src/main/hire.ts');
 
-const manifest = (name) => ({ spec: 'munder-difflin/hire@1', name });
+const manifest = (name) => ({ spec: 'dum-e/hire@1', name });
 
 test('batch import keeps every valid manifest and reports invalid files independently', () => {
   const dir = mkdtempSync(join(tmpdir(), 'munder-hire-import-'));
@@ -20,7 +20,7 @@ test('batch import keeps every valid manifest and reports invalid files independ
     const pam = join(dir, '04-pam.json');
     writeFileSync(jim, JSON.stringify(manifest('Jim')));
     writeFileSync(brokenJson, '{ definitely not json');
-    writeFileSync(invalidManifest, JSON.stringify({ spec: 'munder-difflin/hire@1' }));
+    writeFileSync(invalidManifest, JSON.stringify({ spec: 'dum-e/hire@1' }));
     writeFileSync(pam, JSON.stringify(manifest('Pam')));
 
     const result = readHireManifestFiles([jim, brokenJson, invalidManifest, pam]);

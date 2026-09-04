@@ -44,7 +44,11 @@ import { reduceStatus, clampPercent, isNewer, installerUrl, shouldShowReleaseDro
  *      downgrade is per-check, not a permanent latch.
  */
 
-const REPO = 'chaitanyagiri/munder-difflin';
+// DUM-E is an internal tool with no public release feed yet. When the team
+// stands up its own releases repo: set UPDATES_ENABLED to true, point REPO at
+// it, and restore the `publish:` block in electron-builder.yml.
+const UPDATES_ENABLED = false;
+const REPO = 'dum-e/dum-e';
 const CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6h
 const FALLBACK_CACHE_MS = 60 * 60 * 1000;     // 1h between releases/latest polls
 
@@ -393,10 +397,12 @@ export function initAutoUpdater(getWebContents: () => WebContents | null): void 
     }
   });
   ipcMain.handle('update:checkNow', async () => {
+    if (!UPDATES_ENABLED) return { ok: false, error: 'updates are disabled in this build' };
     if (!app.isPackaged) return { ok: false, error: 'dev build — updates are only checked in packaged apps' };
     return runCheck();
   });
   ipcMain.handle('update:download', async () => {
+    if (!UPDATES_ENABLED) return { ok: false, error: 'updates are disabled in this build' };
     if (!app.isPackaged) return { ok: false, error: 'dev build — updates are only downloaded in packaged apps' };
     return runDownload();
   });
@@ -504,6 +510,7 @@ export function initAutoUpdater(getWebContents: () => WebContents | null): void 
     return { ok: true };
   });
 
+  if (!UPDATES_ENABLED) return;
   if (!app.isPackaged) return;
   if (started) return;
   started = true;

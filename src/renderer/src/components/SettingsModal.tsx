@@ -114,7 +114,7 @@ const SLACK_CONNECT_STEPS = `Connect Munder Difflin to Slack
      message.channels
      message.groups
 8. Save Changes, reinstall if Slack prompts, then invite the bot
-   to your channel:  /invite @MunderDifflin`;
+   to your channel:  /invite @DUM-E`;
 
 /** The request/response contract shown behind the webhook i icon. Every webhook
  *  shares one server and one tunnel and is told apart by its id in the path, so
@@ -484,15 +484,6 @@ export function SettingsModal({ config, onClose, initialSection }: SettingsModal
     setAutoUpdateOn(next);
     try { stage({ autoUpdate: next }); }
     catch { setAutoUpdateOn(!next); }
-  };
-
-  // ─── Anonymous usage stats (default ON = opt-out; contract in TELEMETRY.md) ─
-  const [telemetryOn, setTelemetryOn] = useState<boolean>(config.telemetryEnabled !== false);
-  const toggleTelemetry = async () => {
-    const next = !telemetryOn;
-    setTelemetryOn(next);
-    try { stage({ telemetryEnabled: next }); }
-    catch { setTelemetryOn(!next); }
   };
 
   // --- Free Flow (voice dictation → message queue) ---
@@ -1149,24 +1140,6 @@ export function SettingsModal({ config, onClose, initialSection }: SettingsModal
                             onClick={toggleAutoUpdate}
                           >
                             {autoUpdateOn ? t('common.on') : t('common.off')}
-                          </PixelButton>
-                        </div>
-                        <div style={{ height: 10 }} />
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                            <span style={{ fontSize: 13, lineHeight: '20px', color: 'var(--cth-ink-900)' }}>
-                              {t('settings.general.telemetry')}
-                            </span>
-                            <span style={{ fontSize: 12, lineHeight: '16px', color: 'var(--cth-ink-500)' }}>
-                              {t('settings.general.telemetryDesc')}
-                            </span>
-                          </div>
-                          <PixelButton
-                            variant={telemetryOn ? 'primary' : 'secondary'}
-                            size="sm"
-                            onClick={toggleTelemetry}
-                          >
-                            {telemetryOn ? t('common.on') : t('common.off')}
                           </PixelButton>
                         </div>
                       </div>

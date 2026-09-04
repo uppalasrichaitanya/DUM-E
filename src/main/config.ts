@@ -303,11 +303,6 @@ export interface HarnessConfig {
    *  ("theme" key) at spawn so the TUI's truecolor palette matches. Scoped to
    *  harness agents only; the user's global Claude theme is never touched. */
   terminalTheme?: 'light' | 'dark';
-  /** Anonymous product analytics (PostHog) — the exact events/properties are
-   *  documented in TELEMETRY.md. Default ON (opt-out, like autoUpdate); builds
-   *  without an injected key and environments with DO_NOT_TRACK set never send
-   *  regardless of this flag. (Mirrored in preload + renderer config.) */
-  telemetryEnabled?: boolean;
   /** Master flag for the TV-show office themes feature (Settings theme picker +
    *  destructive switch flow). Default false = the picker is hidden and the
    *  office renders as today (zero behavior change). */
@@ -443,8 +438,7 @@ const DEFAULTS: HarnessConfig = {
   missions: [OPS_STANDUP_MISSION],
   notifications: false,
   strongKeepalive: false,
-  autoUpdate: true,
-  telemetryEnabled: true,
+  autoUpdate: false,
   multiWindow: true,
   tvShowOffices: false,
   officeTheme: 'office',

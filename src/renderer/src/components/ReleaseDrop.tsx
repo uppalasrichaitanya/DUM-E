@@ -8,8 +8,7 @@
  * The chrome follows the landing site (docs/DESIGN.md), not the app's pixel
  * idiom and not a generic rounded sheet: warm paper, square corners, a thick
  * ink border, a hard offset shadow with no blur, and a dark mono title bar with
- * three square dots. It is the `.win` window from munderdiffl.in, so the moment
- * a user opens the drop it reads as the same product they downloaded from.
+ * three square dots. It reads as one designed product.
  *
  * There is NO chrome button here, on purpose. The app frames the drop and gets
  * out of the way; every action the release wants to offer (read the notes, star
@@ -110,7 +109,7 @@ export function ReleaseDrop({ version, html, onDismiss }: ReleaseDropProps) {
     >
       <div
         role="dialog"
-        aria-label={`What's new in Munder Difflin ${version}`}
+        aria-label={`What's new in DUM-E ${version}`}
         onClick={(e) => e.stopPropagation()}
         style={{
           margin: 'auto',

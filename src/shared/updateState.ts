@@ -33,16 +33,18 @@ export type UpdateStatus =
 
 export type UpdateAction = 'none' | 'check' | 'download' | 'restart' | 'open-release' | 'manual';
 
-export const REPO = 'chaitanyagiri/munder-difflin';
+/** The team's own releases repo once DUM-E ships its own update feed; the
+ *  updater is disabled in v1 (no feed yet), so this only feeds manual links. */
+export const REPO = 'dum-e/dum-e';
 
 /** The installer for THIS machine in the release tagged v{version}, by the
  *  names electron-builder.yml produces. Used when a status carries no
  *  `downloadUrl` of its own (the native updater path never does). */
 export function installerUrl(version: string, platform: string, arch: string): string {
   const v = version.replace(/^v/, '');
-  const file = platform === 'darwin' ? `Munder-Difflin-${v}-mac-${arch}.dmg`
-    : platform === 'win32' ? `Munder-Difflin-${v}-win-x64-setup.exe`
-    : `Munder-Difflin-${v}-linux-x86_64.AppImage`;
+  const file = platform === 'darwin' ? `DUM-E-${v}-mac-${arch}.dmg`
+    : platform === 'win32' ? `DUM-E-${v}-win-x64-setup.exe`
+    : `DUM-E-${v}-linux-x86_64.AppImage`;
   return `https://github.com/${REPO}/releases/download/v${v}/${file}`;
 }
 

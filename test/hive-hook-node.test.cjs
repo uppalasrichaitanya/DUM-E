@@ -194,7 +194,7 @@ test('Codex rollouts remain isolated and are visible under the standard scan roo
       `${kind} must stay reachable from the isolated CODEX_HOME`);
     targets[kind] = fs.realpathSync(isolated);
     assert.equal(targets[kind].startsWith(
-      path.join(fs.realpathSync(home), '.codex', kind, 'munder-difflin') + path.sep
+      path.join(fs.realpathSync(home), '.codex', kind, 'dum-e') + path.sep
     ), true, `${targets[kind]} is outside the standard Codex scan root under ${home}`);
     assert.equal(fs.readFileSync(path.join(isolated, relative), 'utf8'), `${kind}\n`,
       `existing ${kind} data was lost during exposure`);
@@ -224,7 +224,7 @@ test('bootstrap exposes archived Codex agents without respawning them', (t) => {
   assert.equal(fs.lstatSync(sessions).isSymbolicLink(), true,
     'an archived agent is never respawned, so bootstrap must expose its rollouts');
   assert.equal(fs.realpathSync(sessions).startsWith(
-    path.join(fs.realpathSync(home), '.codex', 'sessions', 'munder-difflin') + path.sep
+    path.join(fs.realpathSync(home), '.codex', 'sessions', 'dum-e') + path.sep
   ), true);
   assert.equal(fs.readFileSync(path.join(sessions, 'rollout-old.jsonl'), 'utf8'), 'old\n');
 });
@@ -235,7 +235,7 @@ test('a missing exposed directory is repaired on the next spawn', (t) => {
   hive.ensureHive();
   const agentDir = path.join(harness, 'hive', 'agents', 'a1');
   const sessions = path.join(agentDir, '.codex', 'sessions');
-  const staleTarget = path.join(home, '.codex', 'sessions', 'munder-difflin', 'stale', 'a1');
+  const staleTarget = path.join(home, '.codex', 'sessions', 'dum-e', 'stale', 'a1');
   fs.mkdirSync(staleTarget, { recursive: true });
   fs.mkdirSync(path.dirname(sessions), { recursive: true });
   fs.symlinkSync(staleTarget, sessions, process.platform === 'win32' ? 'junction' : 'dir');
@@ -260,7 +260,7 @@ test('an unsafe agent id cannot escape the Munder scan namespace', (t) => {
     codexHome, path.join(home, '.codex'), '../outside', 'sessions'
   ), /invalid agent id/);
   assert.equal(fs.readFileSync(path.join(sessions, 'rollout.jsonl'), 'utf8'), 'safe\n');
-  assert.equal(fs.existsSync(path.join(home, '.codex', 'sessions', 'munder-difflin', 'outside')), false);
+  assert.equal(fs.existsSync(path.join(home, '.codex', 'sessions', 'dum-e', 'outside')), false);
 });
 
 test('reset cleanup removes only exposed Munder rollouts', (t) => {

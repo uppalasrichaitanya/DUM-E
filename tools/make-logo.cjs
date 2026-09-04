@@ -235,6 +235,26 @@ function rasterise(N, grid, frame, border) {
   return encodePng(N, out);
 }
 
+// ── ICO ───────────────────────────────────────────────────────────────────
+/** ICO container of PNG entries (Vista+). 256px is encoded as width byte 0. */
+function buildIco(pngs) {
+  const dir = Buffer.alloc(6);
+  dir.writeUInt16LE(0, 0); dir.writeUInt16LE(1, 2); dir.writeUInt16LE(pngs.length, 4);
+  let offset = 6 + pngs.length * 16;
+  const entries = [], bodies = [];
+  for (const { size, data } of pngs) {
+    const e = Buffer.alloc(16);
+    e[0] = size >= 256 ? 0 : size;
+    e[1] = size >= 256 ? 0 : size;
+    e[2] = 0; e[3] = 0;
+    e.writeUInt16LE(1, 4); e.writeUInt16LE(32, 6);
+    e.writeUInt32LE(data.length, 8); e.writeUInt32LE(offset, 12);
+    entries.push(e); bodies.push(data);
+    offset += data.length;
+  }
+  return Buffer.concat([dir, ...entries, ...bodies]);
+}
+
 // ── run ───────────────────────────────────────────────────────────────────
 const grid = buildGrid();
 const wrote = [];
@@ -245,5 +265,26 @@ const write = (rel, buf) => {
 
 write('src/renderer/src/brand/logo.svg', Buffer.from(buildSvg(1024, grid, 'mark', BORDERS.ink)));
 write('src/renderer/src/brand/logo.png', rasterise(512, grid, 'mark', BORDERS.ink));
+
+// App icons. The .icns needs macOS `iconutil` — on other platforms we write the
+// iconset PNGs so a mac can convert with:
+//   iconutil -c icns build/icon.iconset -o build/icon.icns
+write('build/icon.svg', Buffer.from(buildSvg(1024, grid, 'mark', BORDERS.ink)));
+write('build/icon.png', rasterise(1024, grid, 'mark', BORDERS.ink));
+write('build/icon.ico', buildIco([16, 32, 48, 64, 128, 256].map((size) => ({
+  size, data: rasterise(size, grid, 'mark', BORDERS.ink)
+}))));
+
+const setDir = path.join(ROOT, 'build/icon.iconset');
+fs.rmSync(setDir, { recursive: true, force: true });
+fs.mkdirSync(setDir, { recursive: true });
+for (const [name, size] of [
+  ['icon_16x16', 16], ['icon_16x16@2x', 32], ['icon_32x32', 32], ['icon_32x32@2x', 64],
+  ['icon_128x128', 128], ['icon_128x128@2x', 256], ['icon_256x256', 256],
+  ['icon_256x256@2x', 512], ['icon_512x512', 512], ['icon_512x512@2x', 1024]
+]) {
+  fs.writeFileSync(path.join(setDir, `${name}.png`), rasterise(size, grid, 'mark', BORDERS.ink));
+}
+wrote.push('build/icon.iconset/            (10 pngs, mac: iconutil -c icns)');
 
 console.log(wrote.join('\n'));

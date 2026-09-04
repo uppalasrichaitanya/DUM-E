@@ -1,15 +1,10 @@
 {
-  "name": "munder-difflin",
-  "version": "0.4.6",
+  "name": "dum-e",
+  "version": "0.1.0",
   "private": true,
-  "description": "Clones for you and your team, working 24/7 — a free, local-first multi-agent harness that turns the CLI coding agent you already run into a clone of you, coordinating an office of agents on your machine.",
+  "description": "DUM-E — a Stark-lab themed agent hub for the team: spawn coding agents, give them memory and mailboxes, and let DUM-E run the floor.",
   "main": "out/main/index.js",
-  "author": "Chaitanya Giri",
-  "homepage": "https://munderdiffl.in/",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/chaitanyagiri/munder-difflin.git"
-  },
+  "author": "DUM-E Team",
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build && npm run copy:main-assets",
@@ -52,7 +47,6 @@
     "monaco-editor": "^0.52.2",
     "node-pty": "^1.0.0",
     "pixi.js": "^8.5.1",
-    "posthog-node": "^5.48.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-i18next": "^17.0.11",

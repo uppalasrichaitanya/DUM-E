@@ -370,7 +370,7 @@ export class HiveManager {
     if (!root) return null;
     if (process.platform === 'win32') {
       const id = createHash('sha1').update(root).digest('hex').slice(0, 12);
-      return `\\\\.\\pipe\\munder-difflin-${id}`;
+      return `\\\\.\\pipe\\dum-e-${id}`;
     }
     return join(root, 'hooks.sock');
   }
@@ -2068,7 +2068,7 @@ export class HiveManager {
       throw new Error(`invalid agent id: ${agentId}`);
     }
     const source = join(home, kind);
-    const scanRoot = join(userHome, kind, 'munder-difflin');
+    const scanRoot = join(userHome, kind, 'dum-e');
     const hiveId = createHash('sha1').update(root).digest('hex').slice(0, 12);
     const target = join(scanRoot, hiveId, agentId);
 
@@ -2131,7 +2131,7 @@ export class HiveManager {
         try {
           if (!lstatSync(source).isSymbolicLink()) continue;
           const target = realpathSync(source);
-          const scanRoot = realpathSync(join(userHome, kind, 'munder-difflin'));
+          const scanRoot = realpathSync(join(userHome, kind, 'dum-e'));
           const rel = relative(scanRoot, target);
           const scope = dirname(rel);
           if (!rel || rel.startsWith('..') || isAbsolute(rel)
