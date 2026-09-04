@@ -25,10 +25,16 @@ const { readConfig, setAgentTokenCap, writeConfig } = loadTs('src/main/config.ts
 test.after(() => fs.rmSync(userData, { recursive: true, force: true }));
 
 test('consecutive agent caps survive an interleaved config update', () => {
+  // writeConfig expands registeredRepos through expandTilde at ingestion, and a
+  // POSIX-shaped path is DRIVE-RELATIVE on Windows (isAbsolute says true, then
+  // it resolves against the current drive) — so build the fixture through
+  // path.resolve: the same absolute spelling in, the same absolute spelling out,
+  // on every platform.
+  const repo = path.resolve(os.tmpdir(), 'md-cap-repo-fixture');
   writeConfig({ agentTokenCaps: { existing: 50 } });
 
   setAgentTokenCap('jim', 100);
-  writeConfig({ registeredRepos: ['/workspace/project'] });
+  writeConfig({ registeredRepos: [repo] });
   setAgentTokenCap('pam', 200);
 
   const config = readConfig();
@@ -37,7 +43,7 @@ test('consecutive agent caps survive an interleaved config update', () => {
     jim: 100,
     pam: 200
   });
-  assert.deepEqual(config.registeredRepos, ['/workspace/project']);
+  assert.deepEqual(config.registeredRepos, [repo]);
 });
 
 test('setting and clearing caps use the latest persisted map', () => {

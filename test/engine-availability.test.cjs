@@ -25,15 +25,15 @@ function statusesFor(found) {
 }
 
 test('an installed engine is installed, whatever its installer story', () => {
-  const s = statusesFor(['claude', 'grok']);
+  const s = statusesFor(['claude', 'qwen']);
   assert.equal(classifyEngineAvailability(s, 'claude').state, 'installed');
-  assert.equal(classifyEngineAvailability(s, 'grok').state, 'installed');
-  assert.equal(classifyEngineAvailability(s, 'grok').path, '/usr/local/bin/grok');
+  assert.equal(classifyEngineAvailability(s, 'qwen').state, 'installed');
+  assert.equal(classifyEngineAvailability(s, 'qwen').path, '/usr/local/bin/qwen');
 });
 
 test('a missing engine with an installer installs on first run and does not block', () => {
   const s = statusesFor([]);
-  for (const id of ['claude', 'codex', 'opencode', 'crush', 'pi', 'copilot']) {
+  for (const id of ['claude', 'codex', 'opencode']) {
     const a = classifyEngineAvailability(s, id);
     assert.equal(a.state, 'installs-on-first-run', id);
     assert.ok(a.installCommand.length > 0, id);
@@ -41,31 +41,33 @@ test('a missing engine with an installer installs on first run and does not bloc
   }
 });
 
-test('the repro: grok, antigravity and qwen are offered by the wizard but cannot install', () => {
+test('the repro: qwen is offered by the wizard but cannot install', () => {
+  // qwen is the DEFAULT engine yet ships no installer (no npm package, no
+  // native script — the user wires its OpenAI-compatible endpoint by hand).
+  // The wizard must say so BEFORE the pick is committed instead of letting the
+  // first spawn print a manual hint and never start the orchestrator.
   const s = statusesFor([]);
   const offered = AGENT_PROVIDER_PRESETS.filter((p) => canReceiveInbox(p.id)).map((p) => p.id);
-  for (const id of ['grok', 'antigravity', 'qwen']) {
-    assert.ok(offered.includes(id), `${id} is on the picker`);
-    const a = classifyEngineAvailability(s, id);
-    assert.equal(a.state, 'not-installable', id);
-    assert.equal(engineBlocksOnboarding(a), true, id);
-    assert.equal(engineAvailabilityBadge(a), 'NOT INSTALLED');
-    const msg = engineAvailabilityMessage(a, 'Grok');
-    assert.match(msg, /not installed/);
-    assert.match(msg, /check again/);
-    assert.match(msg, /Claude Code/);
-    assert.doesNotMatch(msg, /[–—-]/, 'no dashes in user facing prose');
-  }
+  assert.ok(offered.includes('qwen'), 'qwen is on the picker');
+  const a = classifyEngineAvailability(s, 'qwen');
+  assert.equal(a.state, 'not-installable');
+  assert.equal(engineBlocksOnboarding(a), true);
+  assert.equal(engineAvailabilityBadge(a), 'NOT INSTALLED');
+  const msg = engineAvailabilityMessage(a, 'Qwen');
+  assert.match(msg, /not installed/);
+  assert.match(msg, /check again/);
+  assert.match(msg, /Claude Code/);
+  assert.doesNotMatch(msg, /[–—-]/, 'no dashes in user facing prose');
 });
 
 test('no probe result means unknown, and unknown never blocks', () => {
-  const a = classifyEngineAvailability(undefined, 'grok');
+  const a = classifyEngineAvailability(undefined, 'qwen');
   assert.equal(a.state, 'unknown');
   assert.equal(engineBlocksOnboarding(a), false);
   assert.equal(engineAvailabilityBadge(a), null);
-  assert.equal(engineAvailabilityMessage(a, 'Grok'), null);
+  assert.equal(engineAvailabilityMessage(a, 'Qwen'), null);
   // a probe that ran but lacks the row behaves the same
-  assert.equal(classifyEngineAvailability([], 'grok').state, 'unknown');
+  assert.equal(classifyEngineAvailability([], 'qwen').state, 'unknown');
 });
 
 test('only the dead end has a message', () => {

@@ -2,6 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const path = require('node:path');
 const loadTs = require('./load-ts.cjs');
 
 const {
@@ -20,7 +21,15 @@ test('Codex remote uses a short stable per-agent home alias', () => {
   assert.equal(first, again);
   assert.notEqual(first, other);
   assert.ok(first.length < 80);
-  assert.match(codexRemoteEndpoint(first), /^unix:\/\/\/tmp\//);
+  // The endpoint is `unix://` + path.join(alias, SOCKET_RELATIVE), so its
+  // separators follow the platform's join (backslashes on Windows). Rebuild
+  // the same join here and require exact equality — that pins the SHAPE (alias
+  // root, digest, socket suffix) without hardcoding a slash spelling the
+  // module never promised.
+  assert.equal(
+    codexRemoteEndpoint(first),
+    `unix://${path.join('/tmp', path.basename(first), 'app-server-control', 'app-server-control.sock')}`
+  );
 });
 
 test('the default alias root yields a socket within sun_path', () => {

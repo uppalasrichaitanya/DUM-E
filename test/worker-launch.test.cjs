@@ -63,10 +63,9 @@ test("auto-mode appends the PROVIDER'S flag, not claude's", () => {
   // each provider's preset knows its own flag, same as the renderer's spawn path.
   const codex = launch({ requestCommand: 'codex', autoMode: true });
   assert.deepEqual(codex.args, ['-a', 'never', '-s', 'workspace-write']);
-  const agy = launch({ requestCommand: 'agy', autoMode: true });
-  assert.deepEqual(agy.args, ['--dangerously-skip-permissions']);
-  const kimi = launch({ requestCommand: 'kimi', autoMode: true });
-  assert.deepEqual(kimi.args, ['--auto']);
+  // qwen's gemini-cli heritage: --yolo auto-approves all actions.
+  const qwen = launch({ requestCommand: 'qwen', autoMode: true });
+  assert.deepEqual(qwen.args, ['--yolo']);
 });
 
 test('an explicit stance wins for non-claude providers too (no doubled flag)', () => {
@@ -78,15 +77,20 @@ test('an explicit stance wins for non-claude providers too (no doubled flag)', (
 });
 
 test('a provider whose preset declares no auto flag gets nothing appended', () => {
+  // opencode's TUI has no skip-permissions flag at all (its permission JSON is
+  // built at spawn), and an unknown binary is 'custom' — same empty flag.
   assert.deepEqual(launch({ requestCommand: 'opencode', autoMode: true }).args, []);
   assert.deepEqual(launch({ requestCommand: 'my-own-tool', autoMode: true }).args, []);
 });
 
 test('a multi-token auto flag appends whole, and the stance check is by token', () => {
-  // copilot's flag starts with `-s`; a substring check would read the `-s` inside
-  // --summarize as an explicit stance and skip the append.
-  const l = launch({ requestCommand: 'copilot --summarize', autoMode: true });
-  assert.deepEqual(l.args, ['--summarize', '-s', '--allow-all-tools', '--no-ask-user']);
+  // codex's flag is three tokens and its stance list includes the single-letter
+  // `-a`/`-s`; a substring check would read the `-s` inside --workspace as an
+  // explicit stance and skip the append. --add-dir is the real hive spawn shape
+  // (hive.ts appends the agent dir as an extra writable root) — it is NOT a
+  // stance, so the auto flag must still be appended.
+  const l = launch({ requestCommand: 'codex --add-dir /hive/agents/w1', autoMode: true });
+  assert.deepEqual(l.args, ['--add-dir', '/hive/agents/w1', '-a', 'never', '-s', 'workspace-write']);
 });
 
 test("an explicit request provider picks that provider's flag for a custom binary", () => {

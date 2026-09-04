@@ -64,9 +64,16 @@ function walk(dir, out = []) {
 }
 
 /** Sweep every config an installer wrote for commands that invoke one of our
- *  shims. Path-agnostic on purpose, so a new installer cannot be missed. */
+ *  shims. Path-agnostic on purpose, so a new installer cannot be missed.
+ *
+ *  Only cth-hook.cjs is a hook COMMAND: claude routes it through
+ *  settings.json's hooks/statusLine, and codex reuses it VERBATIM via the
+ *  per-agent CODEX_HOME config.toml `command = '…'` rows (its hook payload +
+ *  response contract are already Claude-shaped). OpenCode's bridge is a
+ *  bundled PLUGIN (hive-bridge.js) that OpenCode's own JS runtime loads — it
+ *  never appears as a shell command anywhere, so it is not in this sweep. */
 function hookCommandsUnder(home) {
-  const shim = /(cth-hook\.cjs|agy-hook\.cjs|grok-hook\.cjs|gemini-hook\.cjs)/;
+  const shim = /(cth-hook\.cjs)/;
   const found = [];
   for (const file of walk(home)) {
     let text;
@@ -140,33 +147,23 @@ test('every hook installer routes through the launcher — none left on bare nod
   const hive = new HiveManager(() => home);
   await hive.ensureAgent({ id: 'a1', name: 'A', provider: 'claude', cwd: home });
 
-  // agy and grok install into the USER's home. Redirect it, and refuse to run
-  // rather than write into the developer's real ~/.gemini / ~/.grok.
-  const realHome = process.env.HOME;
-  const realProfile = process.env.USERPROFILE;
-  process.env.HOME = home;
-  process.env.USERPROFILE = home;
-  t.after(() => {
-    if (realHome === undefined) delete process.env.HOME; else process.env.HOME = realHome;
-    if (realProfile === undefined) delete process.env.USERPROFILE; else process.env.USERPROFILE = realProfile;
-  });
-  assert.equal(os.homedir(), home, 'home redirect failed — aborting before touching the real home');
-
-  hive.installAgyHooks();
-  hive.installGrokHooks();
-  hive.installGeminiHooks(path.join(home, 'hive/agents/a1'));
+  // installCodexHooks writes a per-agent CODEX_HOME (inside the harness home),
+  // so — unlike the removed global-hook installers — it needs no HOME redirect.
+  // Still asserted for safety: this test must never write into the developer's
+  // real ~/.codex or ~/.claude.
+  assert.equal(os.homedir() !== home, true, 'sanity: the fixture home is not the real home');
   hive.installCodexHooks(path.join(home, 'hive/agents/a1'), 'a1');
 
   const launcher = launcherIn(home);
   const commands = hookCommandsUnder(home);
-  // claude (Stop/statusLine/…) + agy + grok + codex.
-  assert.ok(commands.length >= 4, `expected commands from all installers, got ${commands.length}`);
+  // claude (Stop/statusLine/…) + codex (8 lifecycle events in config.toml).
+  assert.ok(commands.length >= 9, `expected commands from claude + codex installers, got ${commands.length}`);
   const bare = commands.filter((c) => !usesLauncher(c, launcher));
   assert.deepEqual(bare, [], 'these hook commands would exit 127 wherever node is not on the bare PATH');
 
-  for (const shim of ['agy-hook.cjs', 'grok-hook.cjs', 'gemini-hook.cjs']) {
-    assert.ok(commands.some((c) => c.includes(shim)), `${shim} installer produced no command`);
-  }
+  // The codex installer reuses the Claude cth-hook shim verbatim — that is the
+  // whole reason codex gets full hive parity without a translating shim.
+  assert.ok(commands.some((c) => c.includes('cth-hook.cjs')), 'the codex installer produced no cth-hook command');
 });
 
 test('Codex rollouts remain isolated and are visible under the standard scan roots', (t) => {
@@ -282,32 +279,12 @@ test('reset cleanup removes only exposed Munder rollouts', (t) => {
   assert.equal(fs.existsSync(exposed), false, 'reset left Munder rollout data behind');
   assert.equal(fs.readFileSync(personal, 'utf8'), 'personal\n', 'reset touched a personal Codex session');
 });
-
-test('Gemini gets isolated lifecycle settings and an interactive protocol seed', async (t) => {
-  const home = tmpHome();
-  t.after(() => fs.rmSync(home, { recursive: true, force: true }));
-  const hive = new HiveManager(() => home);
-  const injection = await hive.ensureAgent({
-    id: 'gemini-1',
-    name: 'Gemini',
-    provider: 'gemini',
-    cwd: home
-  });
-
-  const settingsPath = injection.env.GEMINI_CLI_SYSTEM_SETTINGS_PATH;
-  assert.equal(typeof settingsPath, 'string');
-  assert.ok(settingsPath.startsWith(path.join(home, 'hive', 'agents', 'gemini-1')));
-  const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
-  assert.deepEqual(
-    Object.keys(settings.hooks),
-    ['SessionStart', 'BeforeAgent', 'BeforeTool', 'AfterTool', 'AfterAgent']
-  );
-  assert.equal(settings.hooksConfig.enabled, true);
-  assert.equal(settings.hooks.BeforeTool[0].matcher, '.*');
-  assert.ok(settings.hooks.AfterAgent[0].hooks[0].command.includes('gemini-hook.cjs'));
-  assert.equal(injection.args[0], '-i');
-  assert.match(injection.args[1], /HIVE PROTOCOL/);
-});
+// (The former "Gemini gets isolated lifecycle settings and an interactive
+//  protocol seed" test lived here. gemini was removed from the engine roster;
+//  its GEMINI_CLI_SYSTEM_SETTINGS_PATH seeding, gemini-hook shim and -i flag
+//  story died with it. The interactive-seeding invariant survives for the
+//  living roster in test/agent-provider.test.cjs — qwen's -i, opencode's
+//  --prompt, codex's positional prompt — without needing this spawn-level test.)
 
 test('a hook fires with NO node on PATH, and its payload reaches HIVE_SOCK', { skip: !POSIX }, async (t) => {
   const home = tmpHome();

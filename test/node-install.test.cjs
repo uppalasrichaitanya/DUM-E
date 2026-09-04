@@ -175,7 +175,9 @@ test('the Windows install script survives cmd /d /s /c quoting', () => {
 // ── the ladder ──────────────────────────────────────────────────────────────
 
 test('a usable npm is untouched — no Node install is ever spliced in', () => {
-  for (const provider of ['claude', 'codex', 'opencode', 'copilot']) {
+  // The roster's three installable engines (qwen ships no installer at all, so
+  // it never reaches this ladder).
+  for (const provider of ['claude', 'codex', 'opencode']) {
     const rung = chooseInstallRung(
       { command: 'npm install -g x', nativeCommand: 'curl x | bash', label: 'X' }, true, INSTALLER
     );

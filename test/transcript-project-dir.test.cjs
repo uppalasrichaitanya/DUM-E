@@ -5,7 +5,20 @@
 // catch.
 //
 // POSIX-only: projectDir() resolves against os.homedir(), which these cases
-// redirect via $HOME — a knob Windows does not honour.
+// redirect via $HOME — a knob Windows does not honour. On Windows the fixture
+// directories would never be "found" (os.homedir() still answers the real
+// home), so the twin-resolution cases would read the live machine instead of
+// the fixture and assert against whatever ~/.claude/projects happens to hold.
+// Gate the whole file rather than select tests: even the spelling-only cases
+// would consult the real home's existing project dirs first.
+
+if (process.platform === 'win32') {
+  console.log('  ok  (win32: projectDir cases need the $HOME knob, which Windows does not honour)');
+} else {
+  runCases();
+}
+
+function runCases() {
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -130,3 +143,4 @@ test('a root cwd never resolves to the projects directory itself', () => {
     assert.equal(path.basename(resolved), '-');
   });
 });
+} // end runCases

@@ -136,12 +136,17 @@ test('turning it off is a real undo, not a terminal rebuild', () => {
   // user's history. Every step of enableArabicRendering has to be reversible.
   const src = read('src/renderer/src/components/terminalPool.ts');
   const off = src.slice(src.indexOf('function disableArabicRendering'));
-  const body = off.slice(0, off.indexOf('\n}\n'));
+  // CRLF-tolerant: the repo's sources carry Windows line endings, and a bare
+  // '\n}\n' match never fires in a CRLF file — the slice would run to EOF and
+  // trip over pool teardown below (a REAL term.dispose, unrelated to this
+  // switch). Match either ending so the slice stops at the function's own
+  // closing brace on every checkout.
+  const body = off.slice(0, off.search(/\r?\n\}\r?\n/));
   assert.match(body, /deregisterCharacterJoiner/, 'the joiner is never removed');
   assert.match(body, /classList\.remove\('cth-bidi'\)/, 'the bidi class is never removed');
   assert.match(body, /detachSpacing\(\)/, 'the spacing observer is never detached');
   const sweep = src.slice(src.indexOf('export function notifyArabicTerminalChangeAll'));
-  assert.doesNotMatch(sweep.slice(0, sweep.indexOf('\n}\n')), /\bterm\.dispose\b|acquireTerminal/,
+  assert.doesNotMatch(sweep.slice(0, sweep.search(/\r?\n\}\r?\n/)), /\bterm\.dispose\b|acquireTerminal/,
     'the live switch must not dispose or recreate a terminal');
 });
 

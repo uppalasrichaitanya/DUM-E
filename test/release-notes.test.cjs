@@ -316,10 +316,10 @@ test('a <style> block is dropped even with no what-is-new heading to anchor on',
 });
 
 test('the notes file we actually ship fits the toast', () => {
-  // Guards the FILE, not the parser: build/release-notes.md is what
-  // releaseInfo.releaseNotesFile bakes into latest*.yml, and it is the thing a
-  // release runner edits by hand. A bullet that silently falls off the budget
-  // is invisible until someone reads a shipped toast.
+  // Guards the FILE, not the parser: build/release-notes.md is the thing a
+  // release runner edits by hand and the voice get_app_info tool reads. A
+  // bullet that silently falls off the budget is invisible until someone reads
+  // a shipped toast.
   const notes = fs.readFileSync(
     path.join(__dirname, '..', 'build', 'release-notes.md'),
     'utf8'
@@ -334,15 +334,10 @@ test('the notes file we actually ship fits the toast', () => {
   assert.doesNotMatch(notes, /<[a-z]/i, 'the notes file must stay free of HTML');
 });
 
-test('electron-builder points the release notes at a file that exists', () => {
-  // Without this field electron-updater silently falls back to the atom feed,
-  // which is the whole bug. A typo here fails open and looks like nothing.
-  const cfg = fs.readFileSync(path.join(__dirname, '..', 'electron-builder.yml'), 'utf8');
-  const match = cfg.match(/^releaseInfo:\n\s+releaseNotesFile:\s*(\S+)\s*$/m);
-
-  assert.ok(match, 'releaseInfo.releaseNotesFile is missing from electron-builder.yml');
-  assert.ok(
-    fs.existsSync(path.join(__dirname, '..', match[1])),
-    `releaseNotesFile points at a missing file: ${match[1]}`
-  );
-});
+// (The former "electron-builder points the release notes at a file that exists"
+//  test asserted `releaseInfo.releaseNotesFile` in electron-builder.yml — the
+//  wiring that put markdown into latest*.yml so electron-updater never fell
+//  back to the atom feed. DUM-E ships with the updater disabled (no publish
+//  feed, UPDATES_ENABLED=false in src/main/updater.ts) and no releaseInfo
+//  block, so there is nothing to point at; when the team re-enables releases,
+//  restore this assertion alongside the releaseInfo block.)

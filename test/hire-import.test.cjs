@@ -101,7 +101,10 @@ test('batch token caps persist atomically before review advances', () => {
 test('Command Center sets and clears one cap through the atomic IPC', () => {
   const panel = readFileSync('src/renderer/src/components/CommandCenterPanel.tsx', 'utf8');
   const start = panel.indexOf('const setAgentCap =');
-  const end = panel.indexOf('\n\n  // The token meter', start);
+  // CRLF-tolerant end marker: the repo's sources carry Windows line endings,
+  // and a bare '\n\n  // …' literal never matches — the slice then runs past
+  // the handler into unrelated code (and end=-1 breaks the sanity check).
+  const end = panel.search(/\r?\n\r?\n  \/\/ The token meter/, start);
   const capFlow = panel.slice(start, end);
 
   assert.ok(start >= 0 && end > start, 'Command Center cap handler is present');
