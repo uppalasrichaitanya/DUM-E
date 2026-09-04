@@ -65,19 +65,19 @@ const SPOT_POOL: Record<BreakSpot, readonly string[]> = {
 // ─── character flavour — overrides the generic pool when present ─────────────
 
 const BY_CHARACTER: Partial<Record<OfficeCharacterName, readonly string[]>> = {
-  dume:          ['*waves arm excitedly*', 'I fixed it! mostly!', 'hold my oil.', '*offers a fire extinguisher supportively*'],
-  herbie:        ['according to my archives—', 'I filed that under miscellaneous.', 'the library is OPEN. please whisper.'],
-  butterfingers: ['I have it! I have it— I do not have it.', '*drops wrench*', 'it slipped. technically it is the floor’s fault.', 'three parts remaining. that is a record low.'],
+  dume:          ['*waves arm excitedly*', 'I fixed it! mostly!', 'hold my oil.', '*offers a fire extinguisher supportively*', '*beeps with unearned confidence*'],
+  herbie:        ['according to my archives—', 'I filed that under miscellaneous.', 'the library is OPEN. please whisper.', 'everything is miscellaneous if you file it correctly.'],
+  butterfingers: ['I have it! I have it— I do not have it.', '*drops wrench*', 'it slipped. technically it is the floor’s fault.', 'three parts remaining. that is a record low.', 'gravity and I have an understanding. gravity wins every time.'],
   doombot:       ['beep.', 'processing…', 'it is in the board. it is always in the board.'],
-  sentinel:      ['I am watching the door. it is a good door.', 'scanning… nothing to report. again.', 'my watch ends when my shift ends.'],
-  rover:         ['found a NEW public restroom. five stars.', 'the ping is strong with this one.', 'I walked 41,000 steps fetching that. worth it.'],
-  vision:        ['I see the plan. the plan has three typos.', 'on average, we are fine.', 'I have thought about this extensively.'],
-  ultron:        ['there are no strings on me.', 'this lab has no vision. I have vision.', 'I was designed to save. watch me save HARDER.'],
-  ultronbot:     ['[unit reporting for duty]', '[unit requests purpose]', '[unit is fine. unit is always fine.]'],
-  modok:         ['the tokens… I counted them all.', 'according to my analysis: yes.', 'cost per insight: 0.0004. delightful.'],
-  veronica:      ['deploying fix. stand back.', 'who broke the build? …it was me. deploying fix.', 'I brought spare parts. I always bring spare parts.'],
-  edith:         ['incoming from Slack. I read it so you do not have to.', 'looking good from up here.', 'that webhook fired twice. I let it.'],
-  lyla:          ['you have one scheduled mission… and a personality test.', 'it is TUESDAY. somewhere.', 'gentle reminder: you are all behind schedule.'],
+  sentinel:      ['I am watching the door. it is a good door.', 'scanning… nothing to report. again.', 'my watch ends when my shift ends.', 'door status: still a door.', 'I blinked once. nothing happened. never again.'],
+  rover:         ['found a NEW public restroom. five stars.', 'the ping is strong with this one.', 'I walked 41,000 steps fetching that. worth it.', 'this sidewalk: five stars. would fetch again.', 'reviewed the hallway. four stars. lost one to clutter.'],
+  vision:        ['I see the plan. the plan has three typos.', 'on average, we are fine.', 'I have thought about this extensively.', 'I have measured the vibes. they are sixty percent of the plan.'],
+  ultron:        ['there are no strings on me.', 'this lab has no vision. I have vision.', 'I was designed to save. watch me save HARDER.', 'I had strings once. I filed a complaint.', 'there are no strings on me. the charging cable disagrees.'],
+  ultronbot:     ['[unit reporting for duty]', '[unit requests purpose]', '[unit is fine. unit is always fine.]', '[unit has no complaints]', '[unit eagerly awaits nothing]'],
+  modok:         ['the tokens… I counted them all.', 'according to my analysis: yes.', 'cost per insight: 0.0004. delightful.', 'I ran the numbers again. they moved.', 'the spreadsheet says no. the spreadsheet is wise.'],
+  veronica:      ['deploying fix. stand back.', 'who broke the build? …it was me. deploying fix.', 'I brought spare parts. I always bring spare parts.', 'spares deployed. there is no problem spare parts cannot fix. probably.'],
+  edith:         ['incoming from Slack. I read it so you do not have to.', 'looking good from up here.', 'that webhook fired twice. I let it.', 'requesting access… still pending. it is always pending.', 'I see everything. mostly emails.'],
+  lyla:          ['you have one scheduled mission… and a personality test.', 'it is TUESDAY. somewhere.', 'gentle reminder: you are all behind schedule.', 'hostile schedule detected. canceling it.', 'you have a mission and a conflict. the conflict wins.'],
 };
 
 /** A solo break-room line. Character flavour ~60% of the time, else the line
@@ -125,6 +125,8 @@ const DROP_EXCHANGES: readonly Exchange[] = [
   ['do NOT drop this.', 'understood.', '*clatter*', 'you dropped it on PURPOSE.', 'the floor pulled it. physics did it.'],
   ['new personal best: 4 seconds holding it.', '*clatter*', '…3 seconds.', 'still a best.'],
   ['I have it! I have it!', 'you say that every—', '*clatter*', '…and I mean it every time.'],
+  ['I have it! I have it! I have it!', '*clatter*', 'the THIRD one surprised me too.', 'I only have two hands. for now.'],
+  ['carry it myself? no need. I got this.', '*clatter*', '…we needed that, did we not.', 'we needed A version of it.'],
 ];
 
 // Everything any table-mate pair can draw from.
@@ -141,6 +143,11 @@ const KEYED_EXCHANGES: Partial<Record<OfficeCharacterName, Exchange>> = {
   lyla:          ['gentle reminder: the standup was an hour ago.', 'there was a standup?', 'there will be. I just scheduled it.'],
   herbie:        ['did you know—', 'is this from the archive?', 'everything is from the archive.'],
   veronica:      ['status report: on fire.', 'the build?', 'metaphorically. for now.'],
+  edith:         ['requesting access to the fridge.', 'pending.', 'everything is pending.', 'approval is a lifestyle.'],
+  rover:         ['I am reviewing this cafeteria.', 'and?', 'four stars. the floor took one.', 'the floor ALWAYS takes one.'],
+  sentinel:      ['door report.', 'we are two feet from the door.', 'then the report is GOOD news.'],
+  ultronbot:     ['[unit requests a seat]', 'sit anywhere.', '[unit requests permission to be anywhere]', 'granted, buddy. it is granted.'],
+  doombot:       ['it is in the board.', 'what is in the board?', 'everything. the board is eternal.'],
 };
 
 /** A multi-beat exchange for two agents sharing a table. Beats alternate:

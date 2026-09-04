@@ -3,6 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <title>DUM-E</title>
+    <!-- Same logo main.tsx injects as the runtime favicon (@brand/logo.png);
+         relative href so Vite fingerprints it into the bundle. main.tsx appends
+         its own copy once React is up — two links to one image is harmless, and
+         this one covers the pre-JS window. -->
+    <link rel="icon" type="image/png" href="./src/brand/logo.png" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://api.openai.com https://*.openai.com wss://api.openai.com wss://*.openai.com; media-src 'self' blob: mediastream:;" />
     <!-- v0.3.4 type revamp: Press Start 2P stays as the BRAND display face
          (small caps labels only); body/UI moves to Inter and code/terminal to
@@ -10,28 +15,152 @@
          (src/renderer/src/design/fonts.css) rather than fetched from
          fonts.googleapis.com. The CSP above allows no external font host. -->
     <style>
+      /* ── Splash v2 — the arc-reactor boot screen ──────────────────────────
+         Pure CSS, zero network, zero JS: the splash must fully paint before
+         the module bundle evaluates, so every effect (reactor rings, orbit
+         sparks, typed title, scanlines) is keyframes over markup that ships
+         in this file. TWO CONTRACTS main.tsx depends on — do not break either:
+           1. The whole splash lives inside #root (React replaces it on first
+              render) — keep it that way.
+           2. The core tile keeps class "mk" inside #cth-splash — main.tsx
+              swaps it for the bundled logo <img> (56px tall) as soon as the
+              module runs.
+         Palette (6 of the ≤8 budget): lab night #04101E, reactor blue
+         #266FD6, deep blue #0C3878, DUM-E gold #F4D35E, cream #F4F1EA,
+         glow-blue #7FA8D9. Values mirror the --cth-arc-* tokens in
+         tokens.css, hardcoded here because the stylesheet bundle has not
+         loaded yet when this paints. */
       #cth-splash {
         position: fixed; inset: 0; display: flex; flex-direction: column;
-        align-items: center; justify-content: center; gap: 14px;
-        background: #04101E; color: #1A1320;
+        align-items: center; justify-content: center;
+        background: #04101E; color: #F4F1EA;
         font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
       }
+      /* CRT scanlines — 3px pitch over everything, quiet enough not to buzz */
+      #cth-splash::after {
+        content: ""; position: absolute; inset: 0; pointer-events: none;
+        background: repeating-linear-gradient(
+          0deg,
+          rgba(4, 16, 30, 0.16) 0px, rgba(4, 16, 30, 0.16) 1px,
+          transparent 1px, transparent 3px
+        );
+      }
+
+      /* ── Arc reactor ──────────────────────────────────────────────────────
+         A soft radial halo (brand imagery, the one sanctioned glow) behind
+         concentric rings: an outer dotted ring drifting clockwise, a deep-blue
+         dashed ring counter-rotating, and a hard gold SQUARE frame around the
+         core — circles for the reactor, a square for the pixel system. */
+      #cth-splash .reactor {
+        position: relative; width: 128px; height: 128px;
+        display: grid; place-items: center;
+      }
+      #cth-splash .halo {
+        position: absolute; inset: -36px; border-radius: 50%;
+        background: radial-gradient(circle,
+          rgba(38, 111, 214, 0.34) 0%,
+          rgba(38, 111, 214, 0.10) 44%,
+          transparent 68%);
+        animation: splash-breathe 3.2s ease-in-out infinite;
+      }
+      #cth-splash .ring { position: absolute; border-radius: 50%; }
+      /* dotted/dashed, not solid: a uniform ring shows no rotation at all */
+      #cth-splash .r1 {
+        inset: 0; border: 3px dotted rgba(38, 111, 214, 0.55);
+        animation: splash-spin 24s linear infinite;
+      }
+      #cth-splash .r2 {
+        inset: 13px; border: 2px dashed #0C3878;
+        animation: splash-spin-rev 36s linear infinite;
+      }
+      /* the gold frame is a SQUARE — the pixel world's say in the reactor */
+      #cth-splash .frame {
+        position: absolute; inset: 24px;
+        border: 2px solid rgba(244, 211, 94, 0.6);
+        animation: splash-flicker 1.9s steps(1, end) infinite;
+      }
+      /* Four gold sparks hopping around the outer ring — 45° steps(8) so the
+         orbit ticks like a sprite rotation instead of gliding. Each spark is
+         pivoted about the reactor's centre: transform-origin 3px 66px lands
+         on (64,64) once the spark's own (61,-2) offset is added back. */
+      #cth-splash .sparks {
+        position: absolute; inset: 0;
+        animation: splash-orbit 3.2s steps(8, end) infinite;
+      }
+      #cth-splash .sparks i {
+        position: absolute; top: -2px; left: calc(50% - 3px);
+        width: 6px; height: 6px; background: #F4D35E;
+        transform-origin: 3px 66px;
+      }
+      #cth-splash .sparks i:nth-child(2) { transform: rotate(90deg); }
+      #cth-splash .sparks i:nth-child(3) { transform: rotate(180deg); }
+      #cth-splash .sparks i:nth-child(4) { transform: rotate(270deg); }
+
+      /* Core tile — "DE" stands in until main.tsx swaps in the real logo */
       #cth-splash .mk {
         display: grid; place-items: center; width: 56px; height: 56px;
         background: #266FD6; color: #F4F1EA; border: 4px solid #0C3878;
         font-family: "Press Start 2P", monospace; font-size: 16px; letter-spacing: -2px;
-        box-shadow: 4px 4px 0 rgba(4,16,30,0.55);
+        box-shadow: 4px 4px 0 rgba(4, 16, 30, 0.55);
       }
-      #cth-splash .title { font-family: "Press Start 2P", monospace; font-size: 13px; color: #F4F1EA; }
-      #cth-splash .hint { font-size: 15px; color: #7FA8D9; }
+
+      /* ── Boot sequence ────────────────────────────────────────────────────
+         The title types itself in letter by letter (steps, no fades — this is
+         a boot log, not a movie), then the hint line lands with a blinking
+         block cursor. */
+      #cth-splash .title {
+        margin-top: 14px;
+        font-family: "Press Start 2P", monospace; font-size: 13px; color: #F4F1EA;
+      }
+      #cth-splash .title span {
+        opacity: 0;
+        animation: splash-type 1ms steps(1, end) forwards;
+        animation-delay: calc(0.5s + var(--i) * 0.24s);
+      }
+      #cth-splash .hint {
+        margin-top: 6px; font-size: 15px; color: #7FA8D9;
+        opacity: 0;
+        animation: splash-type 1ms steps(1, end) forwards;
+        animation-delay: 2.2s;
+      }
+      #cth-splash .cursor {
+        display: inline-block; width: 8px; height: 14px; margin-left: 3px;
+        vertical-align: -2px; background: #F4D35E;
+        animation: splash-blink 1.1s steps(1, end) infinite;
+      }
+
+      @keyframes splash-spin     { to { transform: rotate(360deg); } }
+      @keyframes splash-spin-rev { to { transform: rotate(-360deg); } }
+      @keyframes splash-orbit    { to { transform: rotate(360deg); } }
+      @keyframes splash-type     { to { opacity: 1; } }
+      @keyframes splash-blink    { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+      @keyframes splash-flicker  { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0.45; } }
+      @keyframes splash-breathe  { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
+
+      /* Reduced motion: skip to every end state — full logo, full title, no
+         cycling. (global.css also zeroes durations, but it loads with the JS
+         bundle; this block has to stand alone.) */
+      @media (prefers-reduced-motion: reduce) {
+        #cth-splash, #cth-splash *, #cth-splash ::before, #cth-splash ::after {
+          animation-duration: 0s !important;
+          animation-delay: 0s !important;
+        }
+      }
     </style>
   </head>
   <body>
     <div id="root">
-      <div id="cth-splash">
-        <div class="mk">DE</div>
-        <div class="title">DUM-E</div>
-        <div class="hint">booting the lab…</div>
+      <div id="cth-splash" role="status">
+        <div class="reactor" aria-hidden="true">
+          <div class="halo"></div>
+          <div class="ring r1"></div>
+          <div class="ring r2"></div>
+          <div class="frame"></div>
+          <div class="sparks"><i></i><i></i><i></i><i></i></div>
+          <div class="mk">DE</div>
+        </div>
+        <div class="title" aria-label="DUM-E"><span style="--i:0" aria-hidden="true">D</span><span style="--i:1" aria-hidden="true">U</span><span style="--i:2" aria-hidden="true">M</span><span style="--i:3" aria-hidden="true">-</span><span style="--i:4" aria-hidden="true">E</span></div>
+        <div class="hint">booting the lab…<span class="cursor" aria-hidden="true"></span></div>
       </div>
     </div>
     <script type="module" src="./src/main.tsx"></script>

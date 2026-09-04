@@ -78,6 +78,19 @@
   --cth-lh-body-sm:    18px;
   --cth-lh-mono:       20px;
 
+  /* Arc-reactor brand accents — additive, v0.1 branding pass. The cream/ink
+     system above stays untouched and primary; these five are reserved for the
+     boot splash, the GodBooting reactor, focus rings and small brand marks
+     (logo tile, favicon chip). Do NOT repaint app chrome with them. */
+  --cth-arc:       #266FD6; /* reactor blue — primary brand accent */
+  --cth-arc-deep:  #0C3878; /* deep reactor blue — splash borders, ring depth */
+  --cth-arc-glow:  #7FA8D9; /* reactor glow at low alpha — focus rings, halos */
+  --cth-dume-gold: #F4D35E; /* DUM-E gold — spark/counterpoint on the reactor */
+  --cth-lab-bg:    #04101E; /* lab night — splash/boot ground only */
+  --cth-danger:    #C03028; /* Stark red — destructive text/warnings (was Office
+                               maroon #6E1423). 5.37-5.58:1 on the creams; the
+                               dark theme below retunes it for its own ground. */
+
   /* Hard drop shadow — no blur, softer than before */
   --cth-shadow-hard: 3px 3px 0 rgba(26, 19, 32, 0.14);
 
@@ -170,4 +183,10 @@
 
   /* Hard shadow reads as depth, not void */
   --cth-shadow-hard: 4px 4px 0 rgba(0, 0, 0, 0.45);
+
+  /* Danger gets the same dark-theme treatment every accent gets: the light
+     Stark red (#C03028) measures only 3.14:1 on the dark ground, under the
+     4.5 body-text floor. This lighter red measures 5.63-5.81:1 on both dark
+     surfaces — same hue family, same meaning. */
+  --cth-danger: #E07368;
 }
