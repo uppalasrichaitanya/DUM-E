@@ -109,9 +109,15 @@ The floor's robot roster (Marvel-inspired names, internal use):
 ## Getting started
 
 ```bash
-npm install     # runs electron-rebuild + the node-pty conpty patch (Windows-critical)
+npm install     # rebuilds better-sqlite3 for Electron; node-pty rides prebuilds
 npm run dev     # electron-vite dev
 ```
+
+**Windows build tools:** `npm install` needs the VS Build Tools "Desktop
+development with C++" workload (better-sqlite3 compiles from source). node-pty
+1.1.0 ships N-API prebuilds and does not need to compile — if a machine lacks
+the Spectre-mitigated C++ libraries, only better-sqlite3's build is affected
+and `tools/postinstall.cjs` reports it clearly.
 
 Have at least one engine CLI installed and logged in (`qwen` is the default;
 see Settings → AI Engines for keys and local-LLM base URLs).
