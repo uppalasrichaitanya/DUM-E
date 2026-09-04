@@ -1,6 +1,26 @@
-# Munder Difflin — Design System
+# DUM-E — Design System
 
-> The aesthetic is **Animal Crossing × Earthbound × SNES menu UI**. Pixel-snapped, chunky, friendly. Every UI element should feel like it could appear in a Nintendo game from 1995–2005. This document is canonical: any new component must derive from these tokens.
+> The aesthetic is **Animal Crossing × Earthbound × SNES menu UI**, wearing a
+> Stark-lab badge. Pixel-snapped, chunky, friendly. Every UI element should
+> feel like it could appear in a Nintendo game from 1995–2005. This document is
+> canonical: any new component must derive from these tokens.
+
+### Brand layer (DUM-E-specific)
+The app's chrome stays cream/ink (below) — the arc-reactor identity is an
+*accent layer*, not a repaint. Splash, boot screens, and brand marks use:
+
+| Token | Hex | Use |
+|---|---|---|
+| `--cth-arc` | `#266FD6` | Arc-reactor blue — brand mark, splash, focus rings |
+| `--cth-arc-deep` | `#0C3878` | Deep reactor blue — borders, shadows on dark surfaces |
+| `--cth-arc-glow` | `#4D9BE8` | Emissive glow — screens, LEDs, hover states |
+| `--cth-dume-gold` | `#F4D35E` | DUM-E gold — the extinguisher band, active accents |
+| `--cth-lab-bg` | `#04101E` | Lab dark — splash background, dark surfaces |
+
+Rules: gold marks *achievement/helpfulness* (the extinguisher moment), blue
+marks *the machine itself* (the reactor). Red (`#C03028`-family) is reserved
+for danger. Emissives only on splash/boot/icons — inside the app UI, the
+cream/ink system rules.
 
 ---
 

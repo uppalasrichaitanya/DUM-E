@@ -24,10 +24,12 @@ vendored from [`shahar061/the-office`](https://github.com/shahar061/the-office)
 against the generated lab tilesets.
 
 ## Brand + icons
-`tools/make-logo.cjs` renders the DUM-E brand mark (robot bust on the
-arc-reactor blue tile) and the app icon set from the same hand-authored pixel
-grid. Regenerate with `node tools/make-logo.cjs` (macOS `.icns` needs
-`iconutil -c icns build/icon.iconset` on a Mac).
+`tools/make-logo.cjs` renders the DUM-E brand mark — the arm presenting the
+fire extinguisher — as a two-tier icon system (full diagonal pose ≥48px, the
+extinguisher-in-claw pinch below that) onto the arc-reactor blue tile.
+Regenerate with `node tools/make-logo.cjs` (macOS `.icns` needs
+`iconutil -c icns build/icon.iconset` on a Mac). Preview the sprites as ASCII
+with `node tools/preview-logo.cjs`.
 
 ## Fonts
 `src/renderer/src/assets/fonts/` bundles the app UI faces — check each font's
