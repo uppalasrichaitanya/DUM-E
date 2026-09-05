@@ -1,20 +1,20 @@
 'use strict';
 /**
- * Lab tileset generator — paints DUM-E's placeholder-lab atlases.
+ * Lab tileset generator — paints DUM-E's lab atlases.
  *
  * THE ORIGINALS ARE GONE: the office floor's atlases were LimeZu "Modern
- * Interiors" free-version art (non-commercial license). This tool paints
- * original replacement atlases with the SAME grid layout (16×16 tiles, same
- * atlas dimensions, same gid space) so the existing Tiled maps render without
- * re-authoring: floors become metal plates, walls become lab panels, furniture
- * becomes racks/workbenches, monitors keep their exact gid slots (the theme's
- * monitor config points at them).
+ * Interiors" art (license-encumbered). This tool paints original replacement
+ * atlases with the SAME grid layout (16×16 tiles, same atlas dimensions, same
+ * gid space) so the existing Tiled maps render without re-authoring.
  *
- * Coherence comes from one palette + seeded variation, not from imitating the
- * originals (which we never redistribute or derive from). When the team's
- * artist ships a real lab tileset, swap the PNGs and delete this tool.
+ * CRAFT: follows docs/ART-TECHNIQUES.md (the bible) — one top-left key light,
+ * 5-shade hue-shifted ramps (§2: shadows drift blue-violet, highlights warm),
+ * bevels on every raised surface (§5), 2px dither bands at ramp transitions
+ * (§4), emissive halos within budget (§6), ambient bounce at undersides (§7),
+ * speculars on glossy metal only (§8), seeded texture noise on large fills
+ * (§9). When this file and the bible disagree, fix this file.
  *
- *   node tools/make-lab-tilesets.cjs
+ *   node tools/make-lab-tilesets.cjs [--preview]
  */
 
 const fs = require('node:fs');
@@ -25,22 +25,54 @@ const ROOT = path.resolve(__dirname, '..');
 const OUT = path.join(ROOT, 'src/renderer/src/assets/tilesets');
 fs.mkdirSync(OUT, { recursive: true });
 
-// ── lab palette ─────────────────────────────────────────────────────────────
-const FLOOR   = [46, 60, 80];    // steel plate (raised — was too dark to read)
-const FLOOR_D = [30, 39, 54];    // seam / darker plate
-const FLOOR_H = [62, 78, 102];   // plate highlight
-const INLAY   = [36, 46, 62];    // engraved panel inset (darker than seam)
-const WALL    = [34, 42, 58];    // panel wall
-const WALL_D  = [24, 30, 42];
-const WALL_H  = [50, 61, 84];
-const FURN    = [58, 66, 82];    // furniture metal
-const FURN_D  = [40, 46, 60];
-const FURN_H  = [76, 86, 104];
+// ── 5-shade hue-shifted ramp (bible §2) ─────────────────────────────────────
+// shadows drift toward blue-violet (+blue, −red), highlights toward warm
+// white. The hue shift is the whole point — "darker base" reads dead,
+// "bluer shadow" reads lit.
+const clampR = (v) => (v < 0 ? 0 : v > 255 ? 255 : Math.round(v));
+
+/** [specular, highlight, base, shadow, core] for a material base color. */
+function ramp(rgb) {
+  const [r, g, b] = rgb;
+  return [
+    [clampR(r * 0.35 + 255 * 0.65), clampR(g * 0.35 + 250 * 0.65), clampR(b * 0.20 + 238 * 0.80)], // 0 specular — warm key
+    [clampR(r * 1.25 + 10), clampR(g * 1.25 - 2), clampR(b * 1.25 - 20)],                          // 1 highlight — warm
+    [r, g, b],                                                                                   // 2 base
+    [clampR(r * 0.62 - 8), clampR(g * 0.62 - 2), clampR(b * 0.62 + 18)],                           // 3 shadow — blue-violet
+    [clampR(r * 0.34 - 8), clampR(g * 0.34 - 4), clampR(b * 0.34 + 26)]                             // 4 core shadow
+  ];
+}
+
+// ── lab palette (base colors; painters use their 5-step ramps) ─────────────
+const FLOOR_B  = [46, 60, 80];    // steel plate
+const WALL_B   = [34, 42, 58];    // panel wall (cooler, darker than floor)
+const FURN_B   = [58, 66, 82];    // furniture metal (slightly warm-neutral)
+const PAINT_B  = [52, 58, 72];    // painted metal (flatter, for cabinets/crates)
 const SCREEN_OFF = [12, 15, 24];
 const SCREEN_ON  = [88, 178, 255];
-const ACCENT  = [64, 140, 255];  // arc-reactor blue
-const GOLD    = [244, 211, 94];
+const ACCENT  = [64, 140, 255];  // arc-reactor blue (emissive)
+const GOLD    = [244, 211, 94];   // DUM-E gold (emissive/accent)
 const HAZARD  = [212, 160, 52];  // caution yellow, sparingly
+
+// Material ramps (bible §2) — the [specular, highlight, base, shadow, core].
+const STEEL  = ramp(FLOOR_B);
+const WALLR  = ramp(WALL_B);
+const FURNR  = ramp(FURN_B);
+const PAINTR = ramp(PAINT_B);
+const GOLDR  = ramp(GOLD);
+
+// Legacy aliases used by existing painters — mapped to ramp steps so the
+// migration is incremental and each painter can be re-lit one at a time.
+const FLOOR   = STEEL[2];
+const FLOOR_D = STEEL[3];
+const FLOOR_H = STEEL[1];
+const INLAY   = STEEL[3];
+const WALL    = WALLR[2];
+const WALL_D  = WALLR[3];
+const WALL_H  = WALLR[1];
+const FURN    = FURNR[2];
+const FURN_D  = FURNR[3];
+const FURN_H  = FURNR[1];
 
 // ── PNG writer (from make-logo.cjs, same minimal encoder) ──────────────────
 const CRC = (() => {
@@ -102,6 +134,65 @@ function seeded(seed) {
   return () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; };
 }
 
+// ── craft helpers (bible §4 §5 §6 §7 §9) ────────────────────────────────────
+/** §9 texture noise: seeded ±N luminance jitter over a rect, stable per seed.
+ *  Luminance-only (never hue) — kills flatness on big fills, invisible at
+ *  50% zoom. Keep N in [3..6]; higher reads dirty. */
+function noise(t, x0, y0, x1, y1, rnd, n = 4) {
+  for (let y = y0; y <= y1; y++) {
+    for (let x = x0; x <= x1; x++) {
+      const i = (y * 16 + x) * 4;
+      if (t.px[i + 3] === 0 || t.px[i + 3] < 200) continue;   // skip transparent/holo
+      const d = Math.round((rnd() - 0.5) * 2 * n);
+      t.px[i] = clampR(t.px[i] + d);
+      t.px[i + 1] = clampR(t.px[i + 1] + d);
+      t.px[i + 2] = clampR(t.px[i + 2] + d);
+    }
+  }
+}
+
+/** §4 dither band: 2px checker where shade A (upper) meets B (lower). One
+ *  row of A|B checker at the boundary — the classic pixel gradient fake. */
+function ditherBand(t, y, x0, x1, a, b) {
+  for (let x = x0; x <= x1; x++) {
+    t.set(x, y, (x - x0) % 2 === 0 ? a : b);
+  }
+}
+
+/** §5 bevel: 1px light top+left, 1px dark bottom+right around a rect — the
+ *  SNES raised-surface recipe. `inset` flips it for recessed surfaces
+ *  (screen wells, inlays). Corners get base so the light turns. */
+function bevel(t, x0, y0, x1, y1, rp, inset = false) {
+  const light = inset ? rp[3] : rp[1];
+  const dark  = inset ? rp[1] : rp[3];
+  t.hline(y0, x0, x1, light);
+  t.vline(x0, y0, y1, light);
+  t.hline(y1, x0, x1, dark);
+  t.vline(x1, y0, y1, dark);
+  t.set(x0, y0, inset ? rp[3] : rp[1]);   // corners read as the light turning
+  t.set(x1, y1, inset ? rp[1] : rp[3]);
+}
+
+/** §6 emissive halo: 1px dim ring of the glow's hue (~35% mix into the
+ *  surface below) around a point. Budget: the CALLER enforces ≤2 zones. */
+function halo(t, x, y, glow, surface) {
+  const mix = (c, s) => c.map((v, i) => clampR(v * 0.35 + s[i] * 0.65));
+  for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+    const i = ((y + dy) * 16 + (x + dx)) * 4;
+    if (y + dy < 0 || y + dy > 15 || x + dx < 0 || x + dx > 15) continue;
+    if (t.px[i + 3] === 0) continue;
+    const c = mix(glow, [t.px[i], t.px[i + 1], t.px[i + 2]]);
+    t.set(x + dx, y + dy, c);
+  }
+}
+
+/** §7 ambient bounce: 1px blue-tinted shadow at an underside edge — the
+ *  floor reflects up. One row only, at the very bottom of a surface. */
+function bounce(t, x0, x1, yEdge, rp) {
+  const c = [clampR(rp[3][0] + 8), clampR(rp[3][1] + 8), clampR(rp[3][2] + 16)];
+  t.hline(yEdge, x0, x1, c);
+}
+
 // ── tile painters by semantic class ────────────────────────────────────────
 // Art direction: Tony's workshop at a glance — brushed steel underfoot that
 // RECEDES (agents walk on it), walls that carry lab infrastructure (conduit,
@@ -110,27 +201,30 @@ function seeded(seed) {
 // are the hero tiles), and two signature pieces (arc-ring charger, holo
 // pylon). Steel stays quiet; emissives are rationed (≤2 accents per tile).
 
-/** Steel floor plate: brushed streaks + engraved panel inlay with corner
- *  bolts. The inlay's inset shadow + 4 bolts make big floor areas read as
- *  machined plates, not flat noise — while staying QUIET under the agents. */
+/** Steel floor plate (bible §1 §2 §4 §5 §9): base fill with texture noise,
+ *  engraved panel inlay with an inverted (recessed) bevel + corner bolts,
+ *  brushed streaks, dither at the inlay lip. QUIET under the agents. */
 function paintFloor(t, rnd) {
-  t.fill(FLOOR);
-  // brushed streaks: 1px horizontal runs, sparse (3-4 per tile), never rows
+  t.fill(STEEL[2]);
+  noise(t, 0, 0, 15, 15, rnd, 4);                                  // §9 grain
+  // brushed streaks: 1px horizontal runs, sparse, never rows
   for (let i = 0; i < 4; i++) {
     const y = 2 + Math.floor(rnd() * 12);
     const x0 = Math.floor(rnd() * 8), x1 = x0 + 4 + Math.floor(rnd() * 6);
-    t.hline(y, x0, Math.min(15, x1), FLOOR_D);
+    t.hline(y, x0, Math.min(15, x1), STEEL[3]);
   }
-  // engraved panel inlay (only on most tiles — some stay plain for variety)
+  // engraved panel inlay (most tiles; some plain for variety)
   if (rnd() < 0.7) {
-    t.rect(2, 2, 13, 13, INLAY);                  // the inset itself — darker
-    t.rect(3, 3, 12, 12, FLOOR_D);               // inlay floor (slightly up)
-    t.hline(2, 2, 13, FLOOR_H);                 // inlay top catch-light
-    t.hline(13, 2, 13, [24, 31, 43]);           // inlay bottom shadow
-    for (const [bx, by] of [[3, 3], [12, 3], [3, 12], [12, 12]]) t.set(bx, by, FLOOR_D);  // bolts
+    t.rect(2, 2, 13, 13, STEEL[3]);               // inset wall of the engraving
+    t.rect(3, 3, 12, 12, STEEL[4]);               // engraving floor — core shadow deep
+    noise(t, 3, 3, 12, 12, rnd, 3);
+    bevel(t, 3, 3, 12, 12, STEEL, true);           // §5 recessed bevel
+    ditherBand(t, 2, 3, 12, STEEL[2], STEEL[3]);   // §4 lip transition
+    for (const [bx, by] of [[4, 4], [11, 4], [4, 11], [11, 11]]) t.set(bx, by, STEEL[3]);  // bolts
   }
-  t.hline(15, 0, 15, FLOOR_D); t.vline(15, 0, 15, FLOOR_D);   // plate seams
-  t.hline(0, 0, 15, FLOOR_H);
+  t.hline(15, 0, 15, STEEL[3]); t.vline(15, 0, 15, STEEL[3]);     // plate seams
+  t.hline(0, 0, 15, STEEL[1]);                                     // top catch-light
+  t.vline(0, 0, 15, STEEL[1]);                                     // left catch-light (key side)
 }
 
 /** Hazard-trim floor: doorway/transitional plates — chevrons at the edges. */
@@ -145,156 +239,212 @@ function paintFloorHazard(t) {
   t.rect(2, 2, 13, 13, FLOOR);
 }
 
-/** Lab wall: horizontal brushed panels + infrastructure per seed. Variants:
- *  conduit run (shadowed cable + brackets), backlit strip (a Stark-blue
- *  emissive line — lab lighting), or vent grille. Seams align vertically. */
+/** Lab wall (bible §1 §2 §5 §6 §9): texture-noised panels with horizontal
+ *  seams; three seeded infrastructure variants — conduit run, backlit strip
+ *  (emissive + halo), vent grille. Emissive budget: ≤1 zone per wall tile.
+ *  Variant rolls are taken FIRST so preview seeds stay stable regardless of
+ *  how many rolls the noise pass consumes. */
 function paintWall(t, rnd) {
-  t.fill(WALL);
-  t.hline(0, 0, 15, WALL_H);
-  t.hline(14, 0, 15, WALL_D); t.hline(15, 0, 15, WALL_D);
-  // horizontal panel seams (2 rows) — walls read as brushed sheets
-  t.hline(5, 0, 15, WALL_D);
-  t.hline(10, 0, 15, WALL_D);
-  t.hline(6, 0, 15, WALL_H);
-  t.hline(11, 0, 15, WALL_H);
-  const v = rnd();
+  const v = rnd();                                                  // variant selector (stable)
+  const cy = 2 + Math.floor(rnd() * 2);                             // conduit height
+  const sy = 11 + Math.floor(rnd() * 2);                            // backlit height
+  const rx = 3 + Math.floor(rnd() * 10);                            // rivet column
+  t.fill(WALLR[2]);
+  noise(t, 0, 0, 15, 15, rnd, 4);                                  // §9 grain
+  t.hline(0, 0, 15, WALLR[1]);                                      // top catch-light
+  t.hline(14, 0, 15, WALLR[3]); t.hline(15, 0, 15, WALLR[4]);      // base shadow
+  // horizontal panel seams with a bevel edge (bump above, shadow below)
+  t.hline(5, 0, 15, WALLR[1]);
+  t.hline(6, 0, 15, WALLR[3]);
+  t.hline(10, 0, 15, WALLR[1]);
+  t.hline(11, 0, 15, WALLR[3]);
   if (v < 0.3) {
-    // conduit run: dark cable crossing at bracket height with U-clamps
-    const cy = 2 + Math.floor(rnd() * 2);
-    t.hline(cy, 0, 15, [20, 25, 36]);
-    t.hline(cy + 1, 0, 15, [14, 18, 27]);
-    for (const bx of [2, 9]) { t.set(bx, cy - 1, WALL_H); t.set(bx, cy + 2, WALL_D); }  // brackets
+    // conduit run: shadowed cable with U-clamp brackets, key-side rim light
+    t.hline(cy, 0, 15, [16, 20, 30]);
+    t.hline(cy + 1, 0, 15, [11, 14, 22]);
+    for (const bx of [2, 9]) {
+      t.set(bx, cy - 1, WALLR[1]); t.set(bx, cy + 2, WALLR[3]);    // bracket + rim
+      t.set(bx, cy, WALLR[1]);                                     // clamp highlight
+    }
   } else if (v < 0.55) {
-    // backlit strip: emissive lab lighting line, low on the wall
-    const sy = 11 + Math.floor(rnd() * 2);
+    // backlit strip (emissive §6): Stark-blue line + 1px halo row beneath
     t.hline(sy, 1, 14, ACCENT);
-    t.hline(sy + 1, 1, 14, [16, 35, 80]);
+    t.hline(sy + 1, 1, 14, [28, 60, 110]);                         // halo dim row
+    t.hline(sy - 1, 1, 14, WALLR[1]);                              // rim above
   } else if (v < 0.8) {
-    // vent grille: louvered rectangle
-    t.rect(4, 6, 11, 11, WALL_D);
-    for (let y = 7; y <= 10; y += 2) t.hline(y, 5, 10, WALL);
-    t.hline(6, 5, 10, WALL_H);
+    // vent grille: recessed bevel + louvered slats
+    t.rect(4, 6, 11, 11, WALLR[4]);
+    bevel(t, 4, 6, 11, 11, WALLR, true);
+    for (let y = 8; y <= 10; y += 2) t.hline(y, 5, 10, WALLR[3]);
+    t.hline(7, 5, 10, WALLR[1]);
   }
-  // occasional rivet column for panel texture
-  if (rnd() < 0.4) { const rx = 3 + Math.floor(rnd() * 10); t.vline(rx, 2, 12, WALL_D); }
+  // occasional rivet column for panel texture (deterministic: ~1 in 3 tiles)
+  if (rx % 3 === 0) t.vline(rx, 2, 12, WALLR[3]);
 }
 
-/** Wall-top cap: the ledge where wall meets floor — highlight edge + lip. */
+/** Wall-top cap (bible §5 §7): the ledge where wall meets floor — a full
+ *  raised bevel (light top-left, dark bottom-right) + ambient bounce. */
 function paintWallCap(t) {
-  t.fill(WALL);
-  t.hline(0, 0, 15, WALL_H);
-  t.hline(1, 0, 15, WALL_H);
-  t.hline(15, 0, 15, WALL_D);
-  t.hline(14, 0, 15, WALL_D);
+  t.fill(WALLR[2]);
+  noise(t, 0, 0, 15, 15, seeded(4242), 4);
+  bevel(t, 0, 0, 15, 15, WALLR);
+  bounce(t, 0, 15, 15, WALLR);                                     // §7 floor bounce
 }
 
-/** Workbench/furniture (transparent bg). Variants by seed: workbench (edge
- *  lip + scorch marks), instrument console (tiny multi-color readouts),
- *  tool cabinet (handle notches), or crate (cross-straps). */
+/** Workbench/furniture (bible §2 §5 §9). Seeded kinds, all on the FURN ramp
+ *  except cabinets/crates which use the PAINT ramp — material contrast.
+ *  Every face gets a raised bevel; large faces get noise. */
 function paintFurniture(t, rnd) {
   const pad = 1 + Math.floor(rnd() * 2);
   const kind = rnd();
-  t.rect(pad, 2, 15 - pad, 14, FURN);
-  t.rect(pad, 2, 15 - pad, 4, FURN_H);                          // top edge
+  const rp = (kind >= 0.6 && kind < 0.8) ? PAINTR : FURNR;          // cabinet = painted
+  t.rect(pad, 2, 15 - pad, 14, rp[2]);
+  noise(t, pad, 2, 15 - pad, 14, rnd, 4);
+  bevel(t, pad, 2, 15 - pad, 14, rp);                                // §5 raised face
   if (kind < 0.35) {
-    // workbench: surface lip + scorch marks near a corner
-    t.hline(5, pad + 1, 14 - pad, FURN_D);
+    // workbench: surface lip + scorch marks near a corner + one status LED
+    t.hline(5, pad + 1, 14 - pad, rp[3]);
     const sx = 4 + Math.floor(rnd() * 6);
     t.set(sx, 7, [70, 62, 58]); t.set(sx + 1, 7, [58, 52, 48]); t.set(sx, 8, [58, 52, 48]);
     t.set(13 - pad, 12, ACCENT);
+    halo(t, 13 - pad, 12, ACCENT, rp);                              // §6 LED halo
   } else if (kind < 0.6) {
-    // instrument console: 1px readout bars (two rows, seeded widths + hues)
-    t.hline(6, pad + 2, 13 - pad, FURN_D);
+    // instrument console: recessed readout well + 1px multi-hue readouts
+    t.rect(pad + 2, 6, 13 - pad, 12, rp[4]);
+    bevel(t, pad + 2, 6, 13 - pad, 12, rp, true);
     for (const [ry, hue] of [[8, ACCENT], [11, GOLD]]) {
       const w = 3 + Math.floor(rnd() * 6);
-      t.hline(ry, pad + 2, pad + 1 + w, hue);
+      t.hline(ry, pad + 3, pad + 2 + w, hue);
     }
+    t.set(pad + 3, 7, rp[0]);                                        // well specular
   } else if (kind < 0.8) {
-    // tool cabinet: vertical handle notches
-    for (const hx of [pad + 3, pad + 8]) { t.vline(hx, 7, 12, FURN_D); t.set(hx, 7, FURN_H); }
-    t.hline(13, pad + 2, 13 - pad, FURN_D);
+    // tool cabinet: painted metal, drawer handle notches
+    for (const hx of [pad + 3, pad + 8]) { t.vline(hx, 7, 12, rp[3]); t.set(hx, 7, rp[1]); }
+    t.hline(13, pad + 2, 13 - pad, rp[3]);
   } else {
-    // crate: cross-straps
-    t.hline(8, pad + 1, 14 - pad, FURN_D);
-    t.vline(pad + 5, 5, 13, FURN_D);
+    // crate: painted cross-straps + hazard corner
+    t.hline(8, pad + 1, 14 - pad, rp[3]);
+    t.vline(pad + 5, 5, 13, rp[3]);
     t.set(pad + 2, 12, HAZARD);
   }
-  t.hline(14, pad + 1, 15 - pad, FURN_D);
+  bounce(t, pad + 1, 15 - pad, 14, rp);                              // §7 underside
 }
 
-/** Server rack: bay rails + per-bay dual LEDs (blue/gold alternating via
- *  seed) + a fan-grille dot column. The lab's background muscle. */
+/** Server rack (bible §2 §5 §6 §9): beveled frame, noised face, bay rails
+ *  with paired activity LEDs (halos), fan-grille column, floor bounce. */
 function paintRack(t, rnd) {
-  t.rect(3, 1, 12, 14, FURN_D);
-  t.rect(3, 1, 12, 3, FURN);
+  t.rect(3, 1, 12, 14, FURNR[3]);
+  noise(t, 3, 1, 12, 14, rnd, 4);
+  bevel(t, 3, 1, 12, 14, FURNR);
+  t.rect(4, 2, 11, 3, FURNR[2]);                    // header plate
+  t.hline(2, 4, 11, FURNR[1]);                      // header sheen
   for (let y = 4; y <= 13; y += 3) {
-    t.hline(y, 4, 11, FURN);
-    t.hline(y + 1, 4, 11, FURN_D);
+    t.hline(y, 4, 11, FURNR[2]);
+    t.hline(y + 1, 4, 11, FURNR[4]);
     const hot = rnd() < 0.5;
-    t.set(5, y + 1, hot ? ACCENT : [40, 50, 66]);               // activity LED
-    t.set(10, y + 1, hot ? GOLD : ACCENT);                      // paired LED (contrast)
+    const led = hot ? ACCENT : [40, 50, 66];
+    t.set(5, y + 1, led);
+    halo(t, 5, y + 1, led, FURNR);                 // §6 LED halo (active bays only)
+    t.set(10, y + 1, hot ? GOLD : ACCENT);          // paired contrast LED, no halo (budget)
   }
-  for (let y = 5; y <= 13; y += 2) t.set(12, y, FURN);          // fan grille column
-  t.vline(3, 1, 14, [28, 34, 46]);
+  for (let y = 5; y <= 13; y += 2) t.set(12, y, FURNR[2]);       // fan grille column
+  bounce(t, 4, 11, 14, FURNR);                      // §7 underside
 }
 
-/** Monitor — the hero tiles (the theme's monitor gids point here; agents'
- *  desk screens). ON: dark-navy screen with SEEDED cyan code-lines of
- *  varying width (like 1px lines of code), a brighter scanline sheen on the
- *  top row, small stand + bezel shadow. OFF: near-black + one dim standby
- *  LED so an off screen still reads as a screen. */
+/** Monitor — THE hero tiles (Phase 3). Two-tier beveled bezel (§5), diagonal
+ *  reflection streak, seeded code-lines with syntax hue variety (§6 screen
+ *  content), glow spill onto the bezel's bottom edge, stand + shadow + bounce.
+ *  OFF: near-black + one dim standby LED (budget 1 emissive). */
 function paintScreen(t, on, rnd) {
-  t.rect(1, 2, 14, 12, FURN_D);          // bezel
-  t.rect(2, 3, 13, 11, SCREEN_OFF);      // screen base (dark navy)
+  // outer bezel — raised bevel, noised face
+  t.rect(1, 2, 14, 12, FURNR[2]);
+  noise(t, 1, 2, 14, 12, rnd, 3);
+  bevel(t, 1, 2, 14, 12, FURNR);
+  // screen well — recessed (inverted bevel), dark navy
+  t.rect(2, 3, 13, 11, SCREEN_OFF);
+  bevel(t, 2, 3, 13, 11, FURNR, true);
   if (on) {
-    const CODE = [88, 178, 255];
-    const CODE2 = [244, 211, 94];
-    // code lines: 1px rows of varying width, seeded — indented like source
+    const CODE = [88, 178, 255];        // cyan statements
+    const CODE2 = [244, 211, 94];       // gold keywords (syntax variety)
+    const CODE3 = [178, 208, 235];       // pale comments
+    // code lines: 1px rows, varying indent/width, seeded; blank rows breathe
     for (let y = 4; y <= 10; y++) {
-      if (rnd() < 0.25) continue;                        // blank rows breathe
+      if (rnd() < 0.25) continue;
       const indent = 3 + Math.floor(rnd() * 2);
       const w = 2 + Math.floor(rnd() * 7);
-      t.hline(y, indent, Math.min(13, indent + w), rnd() < 0.2 ? CODE2 : CODE);
+      const roll = rnd();
+      const hue = roll < 0.2 ? CODE2 : (roll < 0.32 ? CODE3 : CODE);
+      t.hline(y, indent, Math.min(13, indent + w), hue);
     }
-    t.hline(3, 2, 13, [140, 205, 255]);                 // top scanline sheen
-    t.set(13, 3, ACCENT);                                // power corner-dot
+    // diagonal reflection streak (§8 gloss): upper-left to mid, translucent
+    for (let i = 0; i < 5; i++) {
+      t.set(3 + i, 3 + i, [190, 220, 245], 120);
+      t.set(4 + i, 3 + i, [190, 220, 245], 90);
+    }
+    t.hline(3, 2, 13, [140, 205, 255]);              // top scanline sheen
+    t.hline(11, 3, 12, [40, 80, 140]);              // glow spill onto bezel (§6)
+    t.set(13, 3, ACCENT);                            // power corner-dot
+    halo(t, 13, 3, ACCENT, FURNR);                   // its 1px halo
   } else {
     t.hline(6, 3, 12, [20, 25, 38]);
-    t.set(3, 11, [64, 84, 64]);                          // dim standby LED
+    t.set(3, 11, [64, 84, 64]);                      // dim standby LED — no halo (off)
   }
-  t.rect(6, 13, 9, 14, FURN_D);          // stand
-  t.hline(14, 5, 10, FURN_D);            // stand shadow
+  // stand: neck + foot + ground shadow + bounce
+  t.rect(6, 13, 9, 13, FURNR[3]);
+  t.rect(5, 14, 10, 14, FURNR[2]);
+  t.hline(14, 5, 10, FURNR[3]);
+  bounce(t, 5, 10, 14, FURNR);
 }
 
-/** Charging station (coffee-machine stand-in): arc-ring pad — a glowing
- *  segmented ring around a dark dock, gold charge pips. The cafe's centrepiece. */
+/** Charging station (Phase 3 signature): arc-ring pad — segmented glowing
+ *  ring (each segment earns a halo), gold charge pips with a core specular,
+ *  docked-device port notch, floor bounce. */
 function paintCharger(t) {
-  t.rect(2, 1, 13, 14, FURN);
-  t.rect(3, 2, 12, 6, FURN_D);
-  // arc ring: 4 segments with gaps — reads as an energy ring, not a box
+  t.rect(2, 1, 13, 14, FURNR[2]);
+  noise(t, 2, 1, 13, 14, seeded(77), 4);
+  bevel(t, 2, 1, 13, 14, FURNR);
+  t.rect(3, 2, 12, 6, FURNR[4]);                     // dark dock well (recessed)
+  bevel(t, 3, 2, 12, 6, FURNR, true);
+  // arc ring: 4 segments with gaps (energy ring, not a box); two halos = budget
   const R = ACCENT;
-  t.hline(3, 5, 7, R); t.hline(3, 9, 11, R);                 // top arc
-  t.hline(6, 5, 6, R); t.hline(6, 10, 11, R);                 // bottom arc
-  t.vline(5, 4, 5, R); t.vline(5, 10, 11, R);                 // left arc
-  t.vline(6, 4, 5, R); t.vline(6, 10, 11, R);                 // right arc
-  t.set(7, 5, GOLD); t.set(8, 5, GOLD); t.set(7, 6, GOLD);    // charge pips (core)
-  for (const x of [4, 8, 12]) t.set(x, 9, GOLD);
-  t.hline(13, 3, 12, FURN_D);
+  t.hline(3, 5, 7, R); t.hline(3, 9, 11, R);
+  t.hline(6, 5, 6, R); t.hline(6, 10, 11, R);
+  t.vline(5, 4, 5, R); t.vline(5, 10, 11, R);
+  t.vline(6, 4, 5, R); t.vline(6, 10, 11, R);
+  halo(t, 5, 3, R, FURNR); halo(t, 11, 3, R, FURNR);  // two halos = the budget
+  // charge pips: gold with a specular core pixel (§8)
+  t.set(7, 5, GOLDR[1]); t.set(8, 5, GOLDR[1]); t.set(7, 6, GOLDR[1]);
+  t.set(8, 5, GOLDR[0]);                            // the ONE specular
+  for (const x of [4, 8, 12]) t.set(x, 9, GOLDR[2]);
+  // port notch bottom-center (recessed)
+  t.rect(7, 11, 9, 12, FURNR[4]);
+  bevel(t, 7, 11, 9, 12, FURNR, true);
+  t.hline(13, 3, 12, FURNR[3]);
+  bounce(t, 3, 12, 14, FURNR);
 }
 
-/** Holo-pylon (plant stand-in): dark mast + a floating 3-step hologram cube
- *  in translucent gold — the lab's answer to the office fern. */
+/** Holo-pylon (Phase 3 signature): dark mast, floating hologram cube with a
+ *  chromatic fringe (1px cyan offset + 1px pink — echoes LYLA), brighter
+ *  core, base light spill, floor bounce. The hologram is the emissive zone. */
 function paintPylon(t) {
-  t.rect(5, 6, 10, 14, FURN_D);
-  t.vline(5, 6, 14, [28, 34, 46]);
-  t.rect(4, 3, 11, 5, FURN);
-  t.hline(4, 5, 10, ACCENT);
+  t.rect(5, 6, 10, 14, FURNR[3]);
+  noise(t, 5, 6, 10, 14, seeded(88), 4);
+  t.vline(5, 6, 14, FURNR[4]);
+  t.rect(4, 3, 11, 5, FURNR[2]);                     // emitter head
+  bevel(t, 4, 3, 11, 5, FURNR);
+  t.hline(4, 5, 10, ACCENT);                          // emitter line
   t.set(7, 4, GOLD); t.set(8, 4, GOLD);
-  // floating hologram cube: 3 concentric squares, outermost translucent
+  // hologram cube: 3 concentric translucent golds + chromatic fringe
   t.rect(6, 8, 10, 12, [244, 211, 94], 90);
   t.rect(7, 9, 9, 11, [244, 211, 94], 150);
-  t.set(8, 10, [255, 244, 180], 220);
-  t.rect(6, 15, 9, 15, FURN_D);          // base shadow
+  t.set(8, 10, [255, 244, 180], 235);                 // bright core
+  t.vline(6, 9, 12, [120, 220, 255], 110);            // cyan fringe (left)
+  t.vline(10, 8, 11, [255, 150, 220], 80);           // pink fringe (right)
+  t.hline(7, 7, 9, [120, 220, 255], 70);             // cyan fringe (top)
+  // base light spill + bounce
+  t.hline(7, 5, 10, [50, 46, 30], 255);
+  bounce(t, 5, 10, 14, FURNR);
+  t.rect(6, 15, 9, 15, FURNR[4]);                    // base shadow
 }
 
 // ── atlas assemblers ─────────────────────────────────────────────────────────
