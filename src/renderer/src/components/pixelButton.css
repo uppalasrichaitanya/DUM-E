@@ -1,0 +1,23 @@
+/* PixelButton chrome that inline styles can't express (Art Bible §5/§6).
+   Loaded by PixelButton.tsx next to its inline style objects. */
+
+.pixel-btn {
+  /* The press already translates 1px and drops the lift shadow inline; this
+     sharpens the pressed border read: hairline goes to the shadow tone so the
+     whole button visibly sinks, like a physical key. */
+  outline: none;
+}
+
+.pixel-btn:not(:disabled):focus-visible {
+  /* Focus ring in the arc-reactor brand blue (§6): 2px offset ring, no blur —
+     pixel language. :focus-visible only — mouse clicks don't paint it, keyboard
+     navigation does, which is the accessible behavior. */
+  outline: 2px solid var(--cth-arc, #266FD6);
+  outline-offset: 2px;
+}
+
+.pixel-btn:not(:disabled):active {
+  /* Belt-and-braces depth for keyboard "press" (Space/Enter) — mousedown
+     already flips `pressed` state inline; :active catches the key path. */
+  box-shadow: inset 0 0 0 1px var(--cth-ink-700);
+}

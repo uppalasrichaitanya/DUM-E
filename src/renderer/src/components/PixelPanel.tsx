@@ -13,12 +13,16 @@ export interface PixelPanelProps {
   noPadding?: boolean;
 }
 
+// Panel chrome follows the Art Bible (docs/ART-TECHNIQUES.md §5): dialogs
+// are hero lab-world surfaces, so they get the SNES 4-layer bevel
+// (--cth-panel-bevel-deep); the dense in-app variants keep hairlines —
+// bevels everywhere would shout, and structure at 1px still reads.
 const borderByVariant: Record<Variant, string> = {
   default:  'var(--cth-panel-border)',
   inset:    'var(--cth-panel-border-inset)',
   active:   'var(--cth-panel-border)',  // accent overlay added separately
   terminal: 'var(--cth-panel-border-terminal)',
-  dialog:   'var(--cth-panel-border-dialog)'
+  dialog:   'var(--cth-panel-bevel-deep)'
 };
 
 const fillByVariant: Record<Variant, string> = {

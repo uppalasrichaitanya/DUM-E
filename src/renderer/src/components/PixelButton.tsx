@@ -1,4 +1,5 @@
 import { CSSProperties, ReactNode, useState } from 'react';
+import './pixelButton.css';
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'destructive';
 type Size = 'sm' | 'md' | 'lg';
@@ -80,6 +81,7 @@ export function PixelButton({
 
   return (
     <button
+      className="pixel-btn"
       title={title}
       onClick={disabled ? undefined : onClick}
       onMouseDown={() => setPressed(true)}

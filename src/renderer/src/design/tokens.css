@@ -107,6 +107,27 @@
   --cth-panel-border-inset:    inset 0 0 0 1px var(--cth-ink-100);
   --cth-panel-border-terminal: inset 0 0 0 1px var(--cth-ink-300);
   --cth-panel-border-dialog:   inset 0 0 0 1px var(--cth-ink-500);
+
+  /* ── Beveled panel borders (Art Bible §5) ─────────────────────────────
+     The SNES 4-layer recipe as stacked inset box-shadows, 1px per layer, no
+     gradients: light bevel top-left, dark bevel bottom-right, hairline frame.
+     Use for the lab-world surfaces (dialog panels, loader frames, splash
+     chrome). Dense in-app chrome keeps the hairline tokens above — bevels
+     everywhere would shout; these are the hero surfaces' voice. */
+  --cth-panel-bevel:
+    inset 1px 1px 0 var(--cth-cream-50),
+    inset -1px -1px 0 var(--cth-ink-700),
+    inset 0 0 0 1px var(--cth-ink-300);
+  --cth-panel-bevel-deep:
+    inset 2px 2px 0 var(--cth-cream-50),
+    inset -2px -2px 0 var(--cth-ink-700),
+    inset 0 0 0 1px var(--cth-ink-500),
+    inset 0 0 0 3px var(--cth-cream-100);
+  /* Inverted: for recessed wells (screen frames, readout trays) */
+  --cth-panel-bevel-inset:
+    inset 1px 1px 0 var(--cth-ink-700),
+    inset -1px -1px 0 var(--cth-cream-50),
+    inset 0 0 0 1px var(--cth-ink-300);
 }
 
 /* ── Dark theme ──────────────────────────────────────────────────────────────
