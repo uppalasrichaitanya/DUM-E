@@ -130,21 +130,22 @@ A render that passes preview tools but fails the squint test is not done.
 
 ---
 
-## Current-state audit (2026-09-06, start of the perfection pass)
+## Current-state audit (updated 2026-09-06, after the perfection pass)
 
 | Rule | State |
 |---|---|
-| Key light | partial — robots have sheen bands but not consistently top-left; tiles mostly unlit |
-| 5-shade ramps | ✗ — `shades()` is 3-step, no hue shift |
-| Sel-out | ✗ — uniform ink outlines everywhere (except LYLA) |
-| Dithering | ✗ — none |
-| Bevels | partial — floor inlays have top/bottom hints; walls/furniture flat |
-| Emissive budget | partial — LEDs glow but no halos; counts unenforced |
-| Ambient bounce | ✗ — none |
-| Speculars | partial — white glints exist on some robots, not systematically |
-| Texture noise | ✗ — fills are solid |
-| Squint test | passes for robots (silhouettes distinct after the cast pass) |
+| Key light | ✅ — one top-left key light across robots (head crescents, torso light columns, lit pods/pauldrons), tiles (catch-lights, bevel edges), and UI (bevel stacks) |
+| 5-shade ramps | ✅ — `ramp5()` (portraitArt) + `ramp()` (tilesets) with hue-shifted shadows/highlights everywhere |
+| Sel-out | ✅ — `outlinePass` is selective (lit-edge rim warms, shadow edge stays ink); LYLA keeps no-outline holo |
+| Dithering | ✅ — 2px checker bands at the inlay lips (floor), shoulder→chest transitions (glossy robots) |
+| Bevels | ✅ — every raised/inset tile surface; `--cth-panel-bevel*` tokens carry it into UI dialogs |
+| Emissive budget | ✅ — ≤2 zones per tile/robot, 1px halos on LEDs/rings (active rack bays, charger arc, power dots) |
+| Ambient bounce | ✅ — blue-tinted underside rows on every base (feet, treads, hover skirts, furniture, equipment stands) |
+| Speculars | ✅ — single curve-top speculars on glossy materials only; matte drones deliberately bare |
+| Texture noise | ✅ — seeded ±4 luminance jitter on all large fills (stable across regenerations) |
+| Squint test | ✅ — 13 robots distinct in silhouette at ASCII level; tile classes readable at 50% zoom |
 
-The phases of the perfection pass close each ✗ in order: robots (Phase 1),
-tiles (Phase 2), equipment (Phase 3), UI chrome (Phase 4), then the final
-review (Phase 5).
+Maintenance rule: any new painter, sprite, or panel introduced to the codebase
+must follow this document — and this table must not regress. If a rule above
+and a generator disagree, fix the generator, then re-run its preview tool and
+the verification battery (tests + typechecks + build).
