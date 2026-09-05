@@ -4,6 +4,10 @@
 > Stark-lab badge. Pixel-snapped, chunky, friendly. Every UI element should
 > feel like it could appear in a Nintendo game from 1995–2005. This document is
 > canonical: any new component must derive from these tokens.
+>
+> **Pixel craft rules** (lighting, ramps, sel-out, dithering, bevels,
+> emissives) live in [docs/ART-TECHNIQUES.md](./docs/ART-TECHNIQUES.md) —
+> canonical for the robot cast, lab tilesets, brand mark, and splash.
 
 ### Brand layer (DUM-E-specific)
 The app's chrome stays cream/ink (below) — the arc-reactor identity is an

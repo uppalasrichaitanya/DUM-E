@@ -6,6 +6,11 @@
 // assets — a robot reads as metal+screen, not a recolored human, and the in-scene
 // sprite reuses the portrait's exact head so an agent on the floor looks
 // identical to its card.
+//
+// CRAFT: lighting, ramp construction, sel-out, dithering, and speculars follow
+// docs/ART-TECHNIQUES.md (the bible) — one top-left key light, 5-shade
+// hue-shifted ramps, selective outlines. This file is its reference
+// implementation.
 
 import type { OfficeCharacterName } from './cast';
 
