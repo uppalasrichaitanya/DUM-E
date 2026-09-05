@@ -35,12 +35,26 @@ type Buf = Uint8ClampedArray;
 let CUR_W = PORTRAIT_W, CUR_H = PORTRAIT_H;
 
 const clamp = (v: number) => (v < 0 ? 0 : v > 255 ? 255 : Math.round(v));
-function shades(rgb: RGB, dl = 1.22, dd = 0.68): [RGB, RGB, RGB] {
+/**
+ * 5-shade hue-shifted ramp (Art Bible §2): [specular, highlight, base,
+ * shadow, core]. Shadows drift toward blue-violet (add blue, pull red),
+ * highlights toward warm — the technique that separates lit metal from
+ * "darker base". Every painter draws from these steps only.
+ */
+function ramp5(rgb: RGB): [RGB, RGB, RGB, RGB, RGB] {
+  const [r, g, b] = rgb;
   return [
-    [clamp(rgb[0] * dl), clamp(rgb[1] * dl), clamp(rgb[2] * dl)],
-    [rgb[0], rgb[1], rgb[2]],
-    [clamp(rgb[0] * dd), clamp(rgb[1] * dd), clamp(rgb[2] * dd)],
+    [clamp(r * 0.35 + 255 * 0.65), clamp(g * 0.35 + 250 * 0.65), clamp(b * 0.20 + 238 * 0.80)], // 0 specular
+    [clamp(r * 1.25 + 10), clamp(g * 1.25 - 2), clamp(b * 1.25 - 20)],                            // 1 highlight — warm
+    [r, g, b],                                                                                     // 2 base
+    [clamp(r * 0.62 - 8), clamp(g * 0.62 - 2), clamp(b * 0.62 + 18)],                              // 3 shadow — blue-violet
+    [clamp(r * 0.34 - 8), clamp(g * 0.34 - 4), clamp(b * 0.34 + 26)]                               // 4 core shadow
   ];
+}
+/** Legacy 3-shade accessor kept for transitional call sites: [hi, base, shadow]. */
+function shades(rgb: RGB, _dl = 1.22, _dd = 0.68): [RGB, RGB, RGB] {
+  const rp = ramp5(rgb);
+  return [rp[1], rp[2], rp[3]];
 }
 
 function set(buf: Buf, x: number, y: number, c: RGB, a = 255): void {
@@ -90,10 +104,12 @@ interface Recipe {
 }
 
 // ─── head ───────────────────────────────────────────────────────────────────
-/** Rounded metal dome rows 4-16; the same silhouette the human heads used, so
- *  every consumer's framing still holds. */
+/** Rounded metal dome rows 4-16, lit top-left (Art Bible §1): highlight
+ *  crescent on the upper-left of the curve, core shadow on the lower-right,
+ *  jaw shadow, ear pods. */
 function drawShellHead(buf: Buf, r: Recipe): void {
-  const [hi, base, sh] = shades(r.shell);
+  const rp = ramp5(r.shell);
+  const [hi, base, sh, core] = [rp[1], rp[2], rp[3], rp[4]];
   if (r.bigHead) {
     // MODOK: giant egg dome rows 2-19 — widest at the brain, tapering chin.
     for (let y = 2; y <= 19; y++) {
@@ -101,9 +117,16 @@ function drawShellHead(buf: Buf, r: Recipe): void {
       for (const [ey, a, b] of BIG_EDGE) if (ey === y) { x0 = a; x1 = b; }
       for (let x = x0; x <= x1; x++) set(buf, x, y, base);
     }
+    // key light on the egg's upper-left curve (§1)
+    for (const [x, y] of [[5, 4], [6, 4], [7, 4], [4, 5], [5, 5], [4, 6], [4, 7], [4, 8], [4, 9]] as const) set(buf, x, y, hi);
+    // core shadow along the lower-right (§1)
+    for (let y = 10; y <= 18; y++) set(buf, 13, y, sh);
+    for (let y = 14; y <= 18; y++) set(buf, 12, y, sh);
+    for (const x of [10, 11, 12]) set(buf, x, 18, core);
+    for (const x of [8, 9, 10, 11]) set(buf, x, 19, core);
     for (let y = 6; y <= 13; y++) { set(buf, 3, y, sh); set(buf, 14, y, sh); }
     for (let x = 7; x <= 10; x++) set(buf, x, 19, sh);
-    if (r.sheen) { for (let x = 6; x <= 11; x++) set(buf, x, 4, hi); }
+    if (r.sheen) set(buf, 5, 4, rp[0]);   // the single specular (§8)
     // big ear pods
     for (const ex of [2, 15]) { set(buf, ex, 10, base); set(buf, ex, 11, base); set(buf, ex, 12, sh); }
     return;
@@ -114,15 +137,17 @@ function drawShellHead(buf: Buf, r: Recipe): void {
       set(buf, x, y, base);
     }
   }
-  // metal sheen: a bright band under the crown (glossy heroes only), dark at the jaw
-  if (r.sheen) {
-    for (let x = 6; x <= 11; x++) set(buf, x, 5, hi);
-    set(buf, 5, 6, hi); set(buf, 6, 6, hi);
-  }
+  // key-light crescent: upper-left of the dome (§1) — replaces the full-width sheen
+  for (const [x, y] of [[6, 4], [7, 4], [5, 5], [6, 5], [5, 6]] as const) set(buf, x, y, hi);
+  if (r.sheen) set(buf, 6, 4, rp[0]);    // specular at the curve top (§8 — glossy only)
+  // core shadow: right edge + jaw
+  for (let y = 9; y <= 15; y++) set(buf, HX1, y, sh);
   for (let x = HX0; x <= HX1; x++) set(buf, x, 16, sh);
-  for (let y = 6; y < 16; y++) { set(buf, HX0, y, sh); set(buf, HX1, y, sh); }
-  // ear pods
-  for (const ex of [HX0 - 1, HX1 + 1]) { set(buf, ex, 9, base); set(buf, ex, 10, base); set(buf, ex, 11, sh); }
+  set(buf, 12, 15, core); set(buf, 11, 16, core);
+  for (let y = 6; y < 16; y++) { set(buf, HX0, y, sh); }
+  // ear pods — lit pod on the key side, shadow pod on the far side
+  set(buf, HX0 - 1, 9, hi); set(buf, HX0 - 1, 10, base); set(buf, HX0 - 1, 11, sh);
+  set(buf, HX1 + 1, 9, base); set(buf, HX1 + 1, 10, sh); set(buf, HX1 + 1, 11, sh);
   // neck
   rect(buf, 7, 17, 10, 18, sh);
 }
@@ -231,16 +256,20 @@ function drawAntenna(buf: Buf, r: Recipe): void {
 }
 
 // ─── torso + chest ──────────────────────────────────────────────────────────
-/** Shoulders → torso, rows 19-27 on the portrait. */
+/** Shoulders → torso, rows 19-27 on the portrait. Lit top-left (§1): a
+ *  highlight column down the key side, core shadow at the lower-right. */
 function drawTorso(buf: Buf, r: Recipe, topY: number, bottomY: number): void {
-  const [hi, base, sh] = shades(r.shell);
-  const acc = shades(r.accent);
+  const rp = ramp5(r.shell);
+  const [hi, base, sh, core] = [rp[1], rp[2], rp[3], rp[4]];
+  const acc = ramp5(r.accent);
   const wide = r.heavy ? 1 : 2;
   if (r.bigHead) {
     // MODOK: no shoulders — a neck stem + tiny vented bib under the giant head
     rect(buf, 7, 19, 10, 21, sh);        // neck stem
     rect(buf, 5, 22, 12, bottomY, base); // bib
     for (let y = 22; y <= bottomY; y++) { set(buf, 5, y, sh); set(buf, 12, y, sh); }
+    set(buf, 6, 22, hi); set(buf, 7, 22, hi);   // bib catch-light (key side)
+    set(buf, 11, bottomY, core); set(buf, 10, bottomY, core);
     // grid vents with a glow core
     const g = r.glow;
     for (let y = 23; y <= Math.min(bottomY - 1, 25); y++) {
@@ -253,22 +282,30 @@ function drawTorso(buf: Buf, r: Recipe, topY: number, bottomY: number): void {
   rect(buf, 3 + (r.heavy ? 0 : 1), topY, 14 - (r.heavy ? 0 : 1), topY, base);
   rect(buf, 2 + wide, topY + 1, 15 - wide, topY + 1, base);
   rect(buf, 1 + wide, topY + 2, 16 - wide, bottomY, base);
-  // shoulder accent pads
+  // shoulder accent pads — key-side pad lit, far pad shadowed (§1)
   for (const [sx0, sx1] of [[1 + wide, 3 + wide], [12 - wide, 14 - wide]] as const) {
     rect(buf, sx0, topY + 1, sx1, topY + 3, acc[1]);
     set(buf, sx0, topY + 1, acc[0]);
   }
+  set(buf, 12 - wide, topY + 3, acc[3]);  // far pad's shadow corner
   if (r.heavy) {
     // VERONICA: +1px pauldrons each side — armor blocks overlapping the shoulder line
     for (const [px0, px1] of [[1, 3], [14, 16]] as const) {
       rect(buf, px0, topY + 2, px1, topY + 4, acc[1]);
       set(buf, px0, topY + 2, acc[0]);
-      set(buf, px1, topY + 4, acc[2]);
+      set(buf, px1, topY + 4, acc[3]);
     }
+    set(buf, 1, topY + 2, acc[0]);       // lit pauldron specular (§8)
   }
-  // side shading + metal sheen down the left
-  for (let y = topY + 2; y <= bottomY; y++) { set(buf, 1 + wide, y, sh); set(buf, 16 - wide, y, sh); }
-  if (r.sheen) { for (let x = 4; x <= 7; x++) set(buf, x, topY + 2, hi); }
+  // key-light column down the left edge; core shadow pooling at the lower-right
+  for (let y = topY + 2; y <= bottomY; y++) { set(buf, 1 + wide, y, hi); set(buf, 16 - wide, y, sh); }
+  for (let x = 9 - wide; x <= 15 - wide; x++) set(buf, x, bottomY, sh);
+  set(buf, 15 - wide, bottomY, core); set(buf, 14 - wide, bottomY, core);
+  if (r.sheen) {
+    // §4 dither band at the shoulder→chest transition (glossy heroes only)
+    for (let x = 4; x <= 8; x++) set(buf, x, topY + 2, (x % 2 === 0 ? hi : base));
+    set(buf, 4, topY + 2, rp[0]);         // one specular on the chest plate (§8)
+  }
 
   // chest display
   const g = r.glow;
@@ -295,40 +332,56 @@ function drawTorso(buf: Buf, r: Recipe, topY: number, bottomY: number): void {
   }
 }
 
-// ─── bases (scene sprites only, rows 25-31) ─────────────────────────────────
+// ─── bases (scene sprites only, rows 24-31) ────────────────────────────────
+/** §7 ambient bounce: one row of blue-tinted shadow at an underside — the
+ *  floor reflects up. Applied by each base painter at its bottom row. */
+function bounceRow(c: RGB): RGB {
+  return [clamp(c[0] - 2), clamp(c[1] + 2), clamp(c[2] + 12)];
+}
+
 function drawLegs(buf: Buf, r: Recipe, phase: number): void {
-  const [, base, sh] = shades(r.accent);
+  const rp = ramp5(r.accent);
+  const [, base, sh] = [rp[1], rp[2], rp[3]];
   // hip block: a pelvis slab rows 24-25 connecting torso to legs cleanly
   rect(buf, 4, 24, 13, 25, base);
   for (let x = 5; x <= 12; x++) set(buf, x, 25, sh);
   set(buf, 4, 25, sh); set(buf, 13, 25, sh);
+  set(buf, 4, 24, rp[1]);               // hip catch-light (key side)
   void r;
   for (const [lx0, lx1] of [[5, 7], [10, 12]] as const) {
     rect(buf, lx0, 25, lx1, 30, base);
     for (let y = 25; y <= 30; y++) set(buf, lx1, y, sh);
+    set(buf, lx0, 25, rp[1]);           // lit leg edge (key side)
     // knee joint
     set(buf, lx0 + 1, 27, sh); set(buf, lx1 - 1, 27, sh);
   }
-  // feet — lift one per walk phase (same gait rhythm the humans used)
+  // feet — lift one per walk phase; the grounded foot gets the §7 bounce
   const leftLow = phase !== 1, rightLow = phase !== 2;
   const shoe: RGB = [44, 40, 48];
-  rect(buf, 5, leftLow ? 31 : 30, 7, leftLow ? 31 : 30, shoe);
-  rect(buf, 10, rightLow ? 31 : 30, 12, rightLow ? 31 : 30, shoe);
+  const shoeBounce = bounceRow(shoe);
+  rect(buf, 5, leftLow ? 31 : 30, 7, leftLow ? 31 : 30, leftLow ? shoeBounce : shoe);
+  rect(buf, 10, rightLow ? 31 : 30, 12, rightLow ? 31 : 30, rightLow ? shoeBounce : shoe);
+  // lifted foot keeps a plain shoe + a hint of shadow under it
+  if (!leftLow) set(buf, 6, 31, shoe, 120);
+  if (!rightLow) set(buf, 11, 31, shoe, 120);
 }
 
 function drawTreads(buf: Buf, r: Recipe): void {
-  const [hi, base, sh] = shades(r.accent);
+  const rp = ramp5(r.accent);
+  const [hi, base, sh] = [rp[1], rp[2], rp[3]];
   const x0 = r.heavy ? 1 : 3, x1 = 17 - x0;
   rect(buf, x0, 26, x1, 30, base);
   for (let x = x0; x <= x1; x += 2) set(buf, x, 28, sh); // tread notches
   rect(buf, x0 + 1, 26, x1 - 1, 26, hi);
-  for (let x = x0; x <= x1; x++) set(buf, x, 30, sh);
+  for (let x = x0 + 1; x <= x1 - 1; x++) set(buf, x, 30, bounceRow(base));  // §7 bounce row
+  set(buf, x0 + 1, 26, rp[0]);          // tread specular (§8 — gloss rolls)
 }
 
 function drawHover(buf: Buf, r: Recipe, phase: number): void {
   // rounded hover skirt + repulsor glow; the bob replaces the walk gait
   const bob = phase === 1 ? 0 : 1;
-  const [, base, sh] = shades(r.accent);
+  const rp = ramp5(r.accent);
+  const [, base, sh] = [rp[1], rp[2], rp[3]];
   const g = r.glow;
   if (r.bigHead) {
     // MODOK's float throne: a tiny bracket seat under the giant head
@@ -336,12 +389,14 @@ function drawHover(buf: Buf, r: Recipe, phase: number): void {
     rect(buf, 5, 27 - bob, 12, 27 - bob, base);
     set(buf, 4, 26 - bob, base); set(buf, 13, 26 - bob, base); // armrest stubs
     for (let x = 5; x <= 12; x++) set(buf, x, 27 - bob, sh);
+    set(buf, 6, 25 - bob, rp[1]);       // throne catch-light
     set(buf, 7, 26 - bob, g); set(buf, 10, 26 - bob, g); // throne glow dots
   } else {
     // float throne: wide at the waist, tapering to a narrower bottom row
     rect(buf, 4, 25 - bob, 13, 27 - bob, base);
     rect(buf, 5, 28 - bob, 12, 28 - bob, base);
-    for (let x = 5; x <= 12; x++) set(buf, x, 28 - bob, sh);
+    for (let x = 5; x <= 12; x++) set(buf, x, 28 - bob, bounceRow(base));   // §7 bounce
+    for (let x = 4; x <= 7; x++) set(buf, x, 25 - bob, rp[1]); // key-side rim
   }
   // repulsor glow
   for (let x = 6; x <= 11; x++) set(buf, x, 30 + bob, g, 170);
@@ -410,18 +465,48 @@ function drawHeadBack(buf: Buf, r: Recipe): void {
 }
 
 // ─── outline / hologram passes ──────────────────────────────────────────────
+/**
+ * Selective outline (Art Bible §3). A uniform near-black rim flattens and
+ * dates sprite art; sel-out keeps the rim only where light can't reach:
+ * each outline pixel looks at its 4-neighbors' opaque surface color and,
+ * when the outline sits on that surface's LIT side (the outline pixel is
+ * above or left of it — the key side), blends toward the surface's shadow
+ * tone so the rim opens up. Shadow-side pixels stay near-black. LYLA never
+ * reaches this pass (holoPass replaces it — light has no dark rim).
+ */
 function outlinePass(buf: Buf): void {
-  const pts: [number, number][] = [];
+  const pts: [number, number, boolean][] = [];
   for (let y = 0; y < CUR_H; y++) {
     for (let x = 0; x < CUR_W; x++) {
       if (alphaAt(buf, x, y) !== 0) continue;
+      let lit = false;
+      let neighbor: RGB | null = null;
       for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
-        if (alphaAt(buf, x + dx, y + dy) === 255) { pts.push([x, y]); break; }
+        const nx = x + dx, ny = y + dy;
+        if (alphaAt(buf, nx, ny) === 255) {
+          // this outline pixel is on the surface's lit side when the surface
+          // is BELOW or RIGHT of it (light comes from top-left)
+          if (dy === 1 || dx === 1) {
+            lit = true;
+            const i = (ny * CUR_W + nx) * 4;
+            neighbor = [buf[i], buf[i + 1], buf[i + 2]];
+          } else if (!neighbor) {
+            const i = (ny * CUR_W + nx) * 4;
+            neighbor = [buf[i], buf[i + 1], buf[i + 2]];
+          }
+        }
       }
+      if (neighbor) pts.push([x, y, lit]);
     }
   }
-  for (const [x, y] of pts) set(buf, x, y, OUTLINE);
+  for (const [x, y, lit] of pts) {
+    // lit-side rim opens toward the surface tone; shadow-side stays near-black
+    set(buf, x, y, lit ? SEL_LIT : OUTLINE);
+  }
 }
+/** The lit-edge rim tone: OUTLINE warmed ~40% toward mid — reads as the
+ *  material's shadow catching light, not as missing outline. */
+const SEL_LIT: RGB = [64, 52, 74];
 
 /** Hologram finish (LYLA): translucent pixels + scanlines across the face
  *  screen; no outline — light doesn't have a dark rim. */
