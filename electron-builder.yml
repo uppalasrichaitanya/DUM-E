@@ -52,8 +52,15 @@ asarUnpack:
   # better-sqlite3 is native (bindings/prebuild need the .node on the real FS).
   - "**/node_modules/better-sqlite3/**"
 
-# Rebuild native deps (node-pty) for the target during packaging.
-npmRebuild: true
+# Native deps ship PREBUILT, not rebuilt at package time:
+#  - node-pty is N-API (its win32 prebuilds work under Electron as-is)
+#  - better-sqlite3 was rebuilt for Electron's ABI by tools/postinstall.cjs
+# A package-time `electron-rebuild -f` would try node-pty from source, which
+# needs the Spectre-mitigated MSVC libs many machines lack (MSB8040) — and
+# would produce nothing better than the working prebuilds we already have.
+# If a fresh checkout builds the app elsewhere, run `npm install` first
+# (postinstall handles the better-sqlite3 rebuild + verification).
+npmRebuild: false
 
 # ---- macOS ----
 mac:
