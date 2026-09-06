@@ -149,8 +149,8 @@ export const OFFICE_THEME: ThemeConfig = {
   tilesets: [
     // lab-tileset.png — embedded in the map (firstgid 1); keep the map's copy.
     { url: officeTilesetUrl, embedded: true },
-    { url: a5FloorsWallsUrl, firstgid: 513, image: 'a5', imagewidth: 256, imageheight: 512, tilewidth: 16, tileheight: 16, columns: 16, tilecount: 512 },
-    { url: interiorsUrl, firstgid: 1025, image: 'interiors', imagewidth: 256, imageheight: 1424, tilewidth: 16, tileheight: 16, columns: 16, tilecount: 1424 },
+    { url: a5FloorsWallsUrl, firstgid: 513, image: 'a5', imagewidth: 384, imageheight: 768, tilewidth: 24, tileheight: 24, columns: 16, tilecount: 512 },
+    { url: interiorsUrl, firstgid: 1025, image: 'interiors', imagewidth: 384, imageheight: 2136, tilewidth: 24, tileheight: 24, columns: 16, tilecount: 1424 },
   ],
   primarySeatNames: [
     'desk-ceo',

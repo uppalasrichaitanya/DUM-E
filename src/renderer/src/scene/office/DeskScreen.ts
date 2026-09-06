@@ -20,9 +20,17 @@ const DEFAULT_ON_GIDS: ReadonlyArray<readonly [number, number, number]> = [
   [383, 0, 1], [384, 1, 1]
 ];
 
-/** Screen interior of the 2×2 (32×32px) block, in local pixels — where the
- *  blue desktop is drawn in the tile art. The animation stays inside it. */
-const SCREEN = { x: 3, y: 5, w: 25, h: 12 };
+/** Screen interior of the 2×2-tile monitor block, in local pixels — where
+ *  the desktop is drawn in the tile art. Tier 2: the block is 2×2 tiles at
+ *  the map's tile size (48×48 at 24px), so the interior scales from the
+ *  16px-era 32×32 block by 1.5. The animation stays inside it. */
+const SCREEN_16 = { x: 3, y: 5, w: 25, h: 12 };  // original 32×32-block values
+const screenFor = (ts: number) => ({
+  x: Math.round(SCREEN_16.x * (ts / 16)),
+  y: Math.round(SCREEN_16.y * (ts / 16)),
+  w: Math.round(SCREEN_16.w * (ts / 16)),
+  h: Math.round(SCREEN_16.h * (ts / 16))
+});
 
 export class DeskScreen {
   readonly container = new Container();
@@ -30,7 +38,7 @@ export class DeskScreen {
   private on = false;
   private t = 0;
 
-  constructor(mapRenderer: TiledMapRenderer, topLeft: { x: number; y: number }, monitor?: MonitorConfig) {
+  constructor(private mapRenderer: TiledMapRenderer, topLeft: { x: number; y: number }, monitor?: MonitorConfig) {
     const ts = mapRenderer.tileSize;
     const onGids = monitor?.onGids ?? DEFAULT_ON_GIDS;
     for (const [gid, dx, dy] of onGids) {
@@ -65,17 +73,19 @@ export class DeskScreen {
     if (!this.on) return;
     this.t += dt;
     const g = this.anim;
+    const S = screenFor(this.mapRenderer.tileSize);
     g.clear();
     // Two faint "output" lines scrolling up the desktop, wrapping around —
     // the eternal build log — plus a cursor blinking in the lower left.
     for (let i = 0; i < 2; i++) {
-      const phase = (this.t * 3.2 + i * (SCREEN.h / 2)) % SCREEN.h;
-      const y = SCREEN.y + SCREEN.h - 1 - phase;
-      const w = 6 + ((i * 7 + Math.floor(this.t / 1.7)) % 9);
-      g.rect(SCREEN.x + 2, Math.round(y), w, 1).fill({ color: 0xcfe6ff, alpha: 0.55 });
+      const phase = (this.t * 3.2 + i * (S.h / 2)) % S.h;
+      const y = S.y + S.h - 1 - phase;
+      const w = Math.round((6 + ((i * 7 + Math.floor(this.t / 1.7)) % 9)) * (this.mapRenderer.tileSize / 16));
+      g.rect(S.x + 2, Math.round(y), w, 1).fill({ color: 0xcfe6ff, alpha: 0.55 });
     }
     if (Math.floor(this.t / 0.53) % 2 === 0) {
-      g.rect(SCREEN.x + 2, SCREEN.y + SCREEN.h - 2, 2, 2).fill({ color: 0xffffff, alpha: 0.9 });
+      const cur = Math.round(2 * (this.mapRenderer.tileSize / 16));
+      g.rect(S.x + 2, S.y + S.h - 2, cur, cur).fill({ color: 0xffffff, alpha: 0.9 });
     }
   }
 

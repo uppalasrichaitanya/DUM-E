@@ -314,19 +314,21 @@ export function OfficeFloor() {
         if (god) st.select(god.id);
         st.requestCommandCenterTab('triggers');
       });
-      // nail + ring binding above a white page with a red month header
-      calG.rect(7, -2, 2, 2).fill(0x4a3b52);                  // nail
-      calG.rect(0, 0, 16, 20).fill(0x4a3b52);                 // frame/shadow
-      calG.rect(1, 1, 14, 18).fill(0xf2ead8);                 // the page
-      calG.rect(1, 1, 14, 4).fill(0xc94f4f);                  // month banner
-      calG.rect(4, 0, 1, 2).fill(0xd8d3c4);                   // binding rings
-      calG.rect(11, 0, 1, 2).fill(0xd8d3c4);
+      // nail + ring binding above a white page with a red month header —
+      // drawn at 1.5× the 16px-era page size to match 24px tiles (Tier 2)
+      const cs = calTs / 16;                                   // calendar scale
+      calG.rect(Math.round(7 * cs), -Math.round(2 * cs), Math.round(2 * cs), Math.round(2 * cs)).fill(0x4a3b52);  // nail
+      calG.rect(0, 0, Math.round(16 * cs), Math.round(20 * cs)).fill(0x4a3b52);                                 // frame/shadow
+      calG.rect(Math.round(cs), Math.round(cs), Math.round(14 * cs), Math.round(18 * cs)).fill(0xf2ead8);        // the page
+      calG.rect(Math.round(cs), Math.round(cs), Math.round(14 * cs), Math.round(4 * cs)).fill(0xc94f4f);        // month banner
+      calG.rect(Math.round(4 * cs), 0, Math.round(cs), Math.round(2 * cs)).fill(0xd8d3c4);                       // binding rings
+      calG.rect(Math.round(11 * cs), 0, Math.round(cs), Math.round(2 * cs)).fill(0xd8d3c4);
       for (let r = 0; r < 3; r++) {
         for (let c = 0; c < 5; c++) {
-          calG.rect(2 + c * 3, 7 + r * 4, 2, 2).fill(0xb8ab90); // day grid
+          calG.rect(Math.round((2 + c * 3) * cs), Math.round((7 + r * 4) * cs), Math.round(2 * cs), Math.round(2 * cs)).fill(0xb8ab90); // day grid
         }
       }
-      calG.rect(8, 11, 2, 2).fill(0xc94f4f);                  // today, circled red
+      calG.rect(Math.round(8 * cs), Math.round(11 * cs), Math.round(2 * cs), Math.round(2 * cs)).fill(0xc94f4f); // today, circled red
       charLayer.addChild(calG);
 
       // Build the ordered seat list once: PC desks + named desks first, then

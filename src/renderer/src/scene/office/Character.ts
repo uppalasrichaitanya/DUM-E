@@ -29,7 +29,10 @@ export function paintCup(g: Graphics, x: number, y: number): void {
   g.rect(x, y - 4, 5, 1).fill(0xffffff);
 }
 
-const SPEED = 48; // pixels/sec (tileSize=16)
+// Walk speed scales with the map's tile size (3 tiles/sec at any resolution —
+// was a hardcoded 48 when tiles were 16px; Tier 2 made tiles 24px).
+const SPEED_TILES_PER_SEC = 3;
+const speedFor = (tileSize: number): number => SPEED_TILES_PER_SEC * tileSize;
 // Slide the sprite when seated so it reads as "sitting on the chair" rather than
 // standing on the tile. The chair tile holds the chair/barrel, with the desk in
 // the tile the agent faces. The feet are anchored at the seat tile's bottom and
@@ -805,7 +808,7 @@ export class Character {
       return;
     }
 
-    const step = Math.min(SPEED * dt, dist);
+    const step = Math.min(speedFor(this.mapRenderer.tileSize) * dt, dist);
     this.px += (dx / dist) * step;
     this.py += (dy / dist) * step;
     this.direction = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');

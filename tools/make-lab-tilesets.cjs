@@ -114,14 +114,21 @@ function encodePng(w, h, rgba) {
 }
 
 // ── canvas ──────────────────────────────────────────────────────────────────
+// Tier 2: tiles render at 24px (was 16). All painter geometry below is
+// authored against these 24px bounds — re-drawn, not upscaled: more rivets,
+// longer streaks, 2px cables, real handles, 2px code-lines. The atlas grid
+// keeps 16 COLUMNS of tiles (the map's `columns` field), so gid math is
+// unchanged — only tile dimensions grow.
+const TILE = 24;
+const MAX = TILE - 1;
 class Tile {
-  constructor() { this.px = new Uint8ClampedArray(16 * 16 * 4); }
+  constructor() { this.px = new Uint8ClampedArray(TILE * TILE * 4); }
   set(x, y, c, a = 255) {
-    if (x < 0 || x > 15 || y < 0 || y > 15) return;
-    const i = (y * 16 + x) * 4;
+    if (x < 0 || x > MAX || y < 0 || y > MAX) return;
+    const i = (y * TILE + x) * 4;
     this.px[i] = c[0]; this.px[i + 1] = c[1]; this.px[i + 2] = c[2]; this.px[i + 3] = a;
   }
-  fill(c) { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) this.set(x, y, c); }
+  fill(c) { for (let y = 0; y <= MAX; y++) for (let x = 0; x <= MAX; x++) this.set(x, y, c); }
   rect(x0, y0, x1, y1, c, a = 255) { for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) this.set(x, y, c, a); }
   hline(y, x0, x1, c, a = 255) { for (let x = x0; x <= x1; x++) this.set(x, y, c, a); }
   vline(x, y0, y1, c, a = 255) { for (let y = y0; y <= y1; y++) this.set(x, y, c, a); }
@@ -141,7 +148,7 @@ function seeded(seed) {
 function noise(t, x0, y0, x1, y1, rnd, n = 4) {
   for (let y = y0; y <= y1; y++) {
     for (let x = x0; x <= x1; x++) {
-      const i = (y * 16 + x) * 4;
+      const i = (y * TILE + x) * 4;
       if (t.px[i + 3] === 0 || t.px[i + 3] < 200) continue;   // skip transparent/holo
       const d = Math.round((rnd() - 0.5) * 2 * n);
       t.px[i] = clampR(t.px[i] + d);
@@ -178,8 +185,8 @@ function bevel(t, x0, y0, x1, y1, rp, inset = false) {
 function halo(t, x, y, glow, surface) {
   const mix = (c, s) => c.map((v, i) => clampR(v * 0.35 + s[i] * 0.65));
   for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
-    const i = ((y + dy) * 16 + (x + dx)) * 4;
-    if (y + dy < 0 || y + dy > 15 || x + dx < 0 || x + dx > 15) continue;
+    const i = ((y + dy) * TILE + (x + dx)) * 4;
+    if (y + dy < 0 || y + dy > MAX || x + dx < 0 || x + dx > MAX) continue;
     if (t.px[i + 3] === 0) continue;
     const c = mix(glow, [t.px[i], t.px[i + 1], t.px[i + 2]]);
     t.set(x + dx, y + dy, c);
@@ -201,269 +208,306 @@ function bounce(t, x0, x1, yEdge, rp) {
 // are the hero tiles), and two signature pieces (arc-ring charger, holo
 // pylon). Steel stays quiet; emissives are rationed (≤2 accents per tile).
 
-/** Steel floor plate (bible §1 §2 §4 §5 §9): base fill with texture noise,
- *  engraved panel inlay with an inverted (recessed) bevel + corner bolts,
- *  brushed streaks, dither at the inlay lip. QUIET under the agents. */
+/** Steel floor plate (bible §1 §2 §4 §5 §9) — authored for 24px: longer
+ *  brushed streaks, a bigger engraved inlay with SIX bolts, full-width
+ *  catch-lights. QUIET under the agents. */
 function paintFloor(t, rnd) {
   t.fill(STEEL[2]);
-  noise(t, 0, 0, 15, 15, rnd, 4);                                  // §9 grain
-  // brushed streaks: 1px horizontal runs, sparse, never rows
-  for (let i = 0; i < 4; i++) {
-    const y = 2 + Math.floor(rnd() * 12);
-    const x0 = Math.floor(rnd() * 8), x1 = x0 + 4 + Math.floor(rnd() * 6);
-    t.hline(y, x0, Math.min(15, x1), STEEL[3]);
+  noise(t, 0, 0, MAX, MAX, rnd, 4);                                // §9 grain
+  // brushed streaks: longer 1px runs (5-14px), sparse, never rows
+  for (let i = 0; i < 5; i++) {
+    const y = 2 + Math.floor(rnd() * 20);
+    const x0 = Math.floor(rnd() * 10), x1 = x0 + 5 + Math.floor(rnd() * 9);
+    t.hline(y, x0, Math.min(MAX, x1), STEEL[3]);
   }
   // engraved panel inlay (most tiles; some plain for variety)
   if (rnd() < 0.7) {
-    t.rect(2, 2, 13, 13, STEEL[3]);               // inset wall of the engraving
-    t.rect(3, 3, 12, 12, STEEL[4]);               // engraving floor — core shadow deep
-    noise(t, 3, 3, 12, 12, rnd, 3);
-    bevel(t, 3, 3, 12, 12, STEEL, true);           // §5 recessed bevel
-    ditherBand(t, 2, 3, 12, STEEL[2], STEEL[3]);   // §4 lip transition
-    for (const [bx, by] of [[4, 4], [11, 4], [4, 11], [11, 11]]) t.set(bx, by, STEEL[3]);  // bolts
-  }
-  t.hline(15, 0, 15, STEEL[3]); t.vline(15, 0, 15, STEEL[3]);     // plate seams
-  t.hline(0, 0, 15, STEEL[1]);                                     // top catch-light
-  t.vline(0, 0, 15, STEEL[1]);                                     // left catch-light (key side)
-}
-
-/** Hazard-trim floor: doorway/transitional plates — chevrons at the edges. */
-function paintFloorHazard(t) {
-  t.fill(FLOOR_D);
-  for (let i = 0; i < 16; i += 4) {
-    for (let k = 0; k < 4 && i + k < 16; k++) {
-      t.set(i + k, k % 2 === 0 ? 0 : 15, HAZARD);
-      t.set(i + k, k % 2 === 0 ? 15 : 0, HAZARD);
+    t.rect(3, 3, 20, 20, STEEL[3]);               // inset wall of the engraving
+    t.rect(4, 4, 19, 19, STEEL[4]);               // engraving floor — core shadow deep
+    noise(t, 4, 4, 19, 19, rnd, 3);
+    bevel(t, 4, 4, 19, 19, STEEL, true);           // §5 recessed bevel
+    ditherBand(t, 3, 4, 19, STEEL[2], STEEL[3]);   // §4 lip transition
+    // six bolts: corners + mid-edges of the bigger plate
+    for (const [bx, by] of [[6, 6], [17, 6], [6, 17], [17, 17], [6, 11], [17, 11]]) {
+      t.set(bx, by, STEEL[3]); t.set(bx + 1, by, STEEL[3]);
     }
   }
-  t.rect(2, 2, 13, 13, FLOOR);
+  t.hline(MAX, 0, MAX, STEEL[3]); t.vline(MAX, 0, MAX, STEEL[3]);  // plate seams
+  t.hline(0, 0, MAX, STEEL[1]);                     // top catch-light
+  t.vline(0, 0, MAX, STEEL[1]);                     // left catch-light (key side)
 }
 
-/** Lab wall (bible §1 §2 §5 §6 §9): texture-noised panels with horizontal
- *  seams; three seeded infrastructure variants — conduit run, backlit strip
- *  (emissive + halo), vent grille. Emissive budget: ≤1 zone per wall tile.
+/** Hazard-trim floor: doorway/transitional plates — double chevron rows. */
+function paintFloorHazard(t) {
+  t.fill(STEEL[3]);
+  for (let i = 0; i < TILE; i += 6) {
+    for (let k = 0; k < 6 && i + k < TILE; k++) {
+      t.set(i + k, k % 2 === 0 ? 0 : MAX, HAZARD);
+      t.set(i + k, k % 2 === 0 ? MAX : 0, HAZARD);
+      t.set(i + k, k % 2 === 0 ? 1 : MAX - 1, HAZARD);
+      t.set(i + k, k % 2 === 0 ? MAX - 1 : 1, HAZARD);
+    }
+  }
+  t.rect(3, 3, 20, 20, STEEL[2]);
+  noise(t, 3, 3, 20, 20, seeded(31), 4);
+  bevel(t, 3, 3, 20, 20, STEEL, true);
+}
+
+/** Lab wall (bible §1 §2 §5 §6 §9) — authored for 24px: three panel seams,
+ *  2px conduit cable with bracket pairs, 2px backlit strip, taller grille.
  *  Variant rolls are taken FIRST so preview seeds stay stable regardless of
  *  how many rolls the noise pass consumes. */
 function paintWall(t, rnd) {
   const v = rnd();                                                  // variant selector (stable)
-  const cy = 2 + Math.floor(rnd() * 2);                             // conduit height
-  const sy = 11 + Math.floor(rnd() * 2);                            // backlit height
-  const rx = 3 + Math.floor(rnd() * 10);                            // rivet column
+  const cy = 3 + Math.floor(rnd() * 3);                             // conduit height
+  const sy = 16 + Math.floor(rnd() * 3);                            // backlit height
+  const rx = 4 + Math.floor(rnd() * 16);                            // rivet column
   t.fill(WALLR[2]);
-  noise(t, 0, 0, 15, 15, rnd, 4);                                  // §9 grain
-  t.hline(0, 0, 15, WALLR[1]);                                      // top catch-light
-  t.hline(14, 0, 15, WALLR[3]); t.hline(15, 0, 15, WALLR[4]);      // base shadow
-  // horizontal panel seams with a bevel edge (bump above, shadow below)
-  t.hline(5, 0, 15, WALLR[1]);
-  t.hline(6, 0, 15, WALLR[3]);
-  t.hline(10, 0, 15, WALLR[1]);
-  t.hline(11, 0, 15, WALLR[3]);
+  noise(t, 0, 0, MAX, MAX, rnd, 4);                                // §9 grain
+  t.hline(0, 0, MAX, WALLR[1]);                                    // top catch-light
+  t.hline(MAX - 1, 0, MAX, WALLR[3]); t.hline(MAX, 0, MAX, WALLR[4]);  // base shadow
+  // three panel seams with bevel edges (24px fits three sheets)
+  for (const [bump, shad] of [[7, 8], [15, 16]]) {
+    t.hline(bump, 0, MAX, WALLR[1]);
+    t.hline(shad, 0, MAX, WALLR[3]);
+  }
   if (v < 0.3) {
-    // conduit run: shadowed cable with U-clamp brackets, key-side rim light
-    t.hline(cy, 0, 15, [16, 20, 30]);
-    t.hline(cy + 1, 0, 15, [11, 14, 22]);
-    for (const bx of [2, 9]) {
-      t.set(bx, cy - 1, WALLR[1]); t.set(bx, cy + 2, WALLR[3]);    // bracket + rim
-      t.set(bx, cy, WALLR[1]);                                     // clamp highlight
+    // conduit run: 2px shadowed cable, U-clamp bracket pairs with rim light
+    t.hline(cy, 0, MAX, [16, 20, 30]);
+    t.hline(cy + 1, 0, MAX, [11, 14, 22]);
+    t.hline(cy + 2, 0, MAX, [8, 10, 17]);
+    for (const bx of [3, 13]) {
+      t.set(bx, cy - 1, WALLR[1]); t.set(bx + 1, cy - 1, WALLR[1]);   // bracket rims
+      t.set(bx, cy + 3, WALLR[3]); t.set(bx + 1, cy + 3, WALLR[3]);
+      t.set(bx, cy, WALLR[1]); t.set(bx + 1, cy, WALLR[1]);           // clamp highlights
     }
   } else if (v < 0.55) {
-    // backlit strip (emissive §6): Stark-blue line + 1px halo row beneath
-    t.hline(sy, 1, 14, ACCENT);
-    t.hline(sy + 1, 1, 14, [28, 60, 110]);                         // halo dim row
-    t.hline(sy - 1, 1, 14, WALLR[1]);                              // rim above
+    // backlit strip (emissive §6): 2px Stark-blue line + halo + rim
+    t.hline(sy, 1, MAX - 1, ACCENT);
+    t.hline(sy + 1, 1, MAX - 1, ACCENT);
+    t.hline(sy + 2, 1, MAX - 1, [28, 60, 110]);                   // halo dim row
+    t.hline(sy - 1, 1, MAX - 1, WALLR[1]);                        // rim above
   } else if (v < 0.8) {
-    // vent grille: recessed bevel + louvered slats
-    t.rect(4, 6, 11, 11, WALLR[4]);
-    bevel(t, 4, 6, 11, 11, WALLR, true);
-    for (let y = 8; y <= 10; y += 2) t.hline(y, 5, 10, WALLR[3]);
-    t.hline(7, 5, 10, WALLR[1]);
+    // vent grille: recessed bevel + louvered slats (taller in 24px)
+    t.rect(5, 8, 18, 18, WALLR[4]);
+    bevel(t, 5, 8, 18, 18, WALLR, true);
+    for (let y = 10; y <= 16; y += 2) t.hline(y, 6, 17, WALLR[3]);
+    t.hline(9, 6, 17, WALLR[1]);
   }
   // occasional rivet column for panel texture (deterministic: ~1 in 3 tiles)
-  if (rx % 3 === 0) t.vline(rx, 2, 12, WALLR[3]);
+  if (rx % 3 === 0) t.vline(rx, 2, 20, WALLR[3]);
 }
 
 /** Wall-top cap (bible §5 §7): the ledge where wall meets floor — a full
  *  raised bevel (light top-left, dark bottom-right) + ambient bounce. */
 function paintWallCap(t) {
   t.fill(WALLR[2]);
-  noise(t, 0, 0, 15, 15, seeded(4242), 4);
-  bevel(t, 0, 0, 15, 15, WALLR);
-  bounce(t, 0, 15, 15, WALLR);                                     // §7 floor bounce
+  noise(t, 0, 0, MAX, MAX, seeded(4242), 4);
+  bevel(t, 0, 0, MAX, MAX, WALLR);
+  bounce(t, 0, MAX, MAX, WALLR);                                   // §7 floor bounce
 }
 
 /** Workbench/furniture (bible §2 §5 §9). Seeded kinds, all on the FURN ramp
  *  except cabinets/crates which use the PAINT ramp — material contrast.
  *  Every face gets a raised bevel; large faces get noise. */
 function paintFurniture(t, rnd) {
-  const pad = 1 + Math.floor(rnd() * 2);
+  const pad = 1 + Math.floor(rnd() * 3);
   const kind = rnd();
   const rp = (kind >= 0.6 && kind < 0.8) ? PAINTR : FURNR;          // cabinet = painted
-  t.rect(pad, 2, 15 - pad, 14, rp[2]);
-  noise(t, pad, 2, 15 - pad, 14, rnd, 4);
-  bevel(t, pad, 2, 15 - pad, 14, rp);                                // §5 raised face
+  const x1 = MAX - pad, y1 = MAX - 2;
+  t.rect(pad, 3, x1, y1, rp[2]);
+  noise(t, pad, 3, x1, y1, rnd, 4);
+  bevel(t, pad, 3, x1, y1, rp);                                      // §5 raised face
   if (kind < 0.35) {
-    // workbench: surface lip + scorch marks near a corner + one status LED
-    t.hline(5, pad + 1, 14 - pad, rp[3]);
-    const sx = 4 + Math.floor(rnd() * 6);
-    t.set(sx, 7, [70, 62, 58]); t.set(sx + 1, 7, [58, 52, 48]); t.set(sx, 8, [58, 52, 48]);
-    t.set(13 - pad, 12, ACCENT);
-    halo(t, 13 - pad, 12, ACCENT, rp);                              // §6 LED halo
+    // workbench: 2px surface lip + scorch cluster + status LED with halo
+    t.hline(7, pad + 1, x1 - 1, rp[3]);
+    t.hline(8, pad + 1, x1 - 1, rp[1]);
+    const sx = 6 + Math.floor(rnd() * 8);
+    t.set(sx, 11, [70, 62, 58]); t.set(sx + 1, 11, [58, 52, 48]); t.set(sx, 12, [58, 52, 48]);
+    t.set(sx + 2, 10, [58, 52, 48]);
+    t.set(x1 - 2, y1 - 3, ACCENT);
+    halo(t, x1 - 2, y1 - 3, ACCENT, rp);                            // §6 LED halo
   } else if (kind < 0.6) {
-    // instrument console: recessed readout well + 1px multi-hue readouts
-    t.rect(pad + 2, 6, 13 - pad, 12, rp[4]);
-    bevel(t, pad + 2, 6, 13 - pad, 12, rp, true);
-    for (const [ry, hue] of [[8, ACCENT], [11, GOLD]]) {
-      const w = 3 + Math.floor(rnd() * 6);
-      t.hline(ry, pad + 3, pad + 2 + w, hue);
+    // instrument console: recessed readout well + 2px multi-hue readouts
+    t.rect(pad + 3, 9, x1 - 3, y1 - 2, rp[4]);
+    bevel(t, pad + 3, 9, x1 - 3, y1 - 2, rp, true);
+    for (const [ry, hue] of [[11, ACCENT], [15, GOLD]]) {
+      const w = 4 + Math.floor(rnd() * 8);
+      t.hline(ry, pad + 4, pad + 3 + w, hue);
+      t.hline(ry + 1, pad + 4, pad + 3 + Math.floor(w * 0.6), hue);
     }
-    t.set(pad + 3, 7, rp[0]);                                        // well specular
+    t.set(pad + 4, 10, rp[0]);                                      // well specular
   } else if (kind < 0.8) {
-    // tool cabinet: painted metal, drawer handle notches
-    for (const hx of [pad + 3, pad + 8]) { t.vline(hx, 7, 12, rp[3]); t.set(hx, 7, rp[1]); }
-    t.hline(13, pad + 2, 13 - pad, rp[3]);
+    // tool cabinet: painted metal, 3 drawers with handle notches
+    for (const hy of [8, 13, 18]) {
+      t.hline(hy, pad + 2, x1 - 2, rp[3]);
+      t.hline(hy + 1, pad + 2, x1 - 2, rp[1]);
+      for (const hx of [pad + 4, pad + 10]) { t.vline(hx, hy + 2, hy + 3, rp[3]); t.set(hx, hy + 2, rp[1]); }
+    }
+    t.hline(y1 - 2, pad + 2, x1 - 2, rp[3]);
   } else {
-    // crate: painted cross-straps + hazard corner
-    t.hline(8, pad + 1, 14 - pad, rp[3]);
-    t.vline(pad + 5, 5, 13, rp[3]);
-    t.set(pad + 2, 12, HAZARD);
+    // crate: painted cross-straps + hazard corner chips
+    t.hline(11, pad + 1, x1 - 1, rp[3]);
+    t.hline(12, pad + 1, x1 - 1, rp[1]);
+    t.vline(pad + 7, 4, y1 - 1, rp[3]);
+    t.vline(pad + 8, 4, y1 - 1, rp[1]);
+    t.set(pad + 3, y1 - 3, HAZARD); t.set(pad + 4, y1 - 3, HAZARD);
+    t.set(x1 - 3, 6, HAZARD); t.set(x1 - 2, 6, HAZARD);
   }
-  bounce(t, pad + 1, 15 - pad, 14, rp);                              // §7 underside
+  bounce(t, pad + 1, x1 - 1, y1, rp);                                // §7 underside
 }
 
-/** Server rack (bible §2 §5 §6 §9): beveled frame, noised face, bay rails
- *  with paired activity LEDs (halos), fan-grille column, floor bounce. */
+/** Server rack (bible §2 §5 §6 §9) — authored for 24px: beveled frame, five
+ *  bays with real HANDLE bars, paired LEDs (halos on active), fan column. */
 function paintRack(t, rnd) {
-  t.rect(3, 1, 12, 14, FURNR[3]);
-  noise(t, 3, 1, 12, 14, rnd, 4);
-  bevel(t, 3, 1, 12, 14, FURNR);
-  t.rect(4, 2, 11, 3, FURNR[2]);                    // header plate
-  t.hline(2, 4, 11, FURNR[1]);                      // header sheen
-  for (let y = 4; y <= 13; y += 3) {
-    t.hline(y, 4, 11, FURNR[2]);
-    t.hline(y + 1, 4, 11, FURNR[4]);
+  const x0 = 4, x1 = 19, y1 = 21;
+  t.rect(x0, 1, x1, y1, FURNR[3]);
+  noise(t, x0, 1, x1, y1, rnd, 4);
+  bevel(t, x0, 1, x1, y1, FURNR);
+  t.rect(x0 + 1, 2, x1 - 1, 5, FURNR[2]);           // header plate
+  t.hline(3, x0 + 1, x1 - 1, FURNR[1]);              // header sheen
+  t.set(x0 + 2, 3, FURNR[0]);                        // header specular
+  for (let y = 7; y <= y1 - 2; y += 3) {
+    t.hline(y, x0 + 1, x1 - 1, FURNR[2]);
+    t.hline(y + 1, x0 + 1, x1 - 1, FURNR[4]);
+    // handle bar across the bay (2px, key-side highlight)
+    t.hline(y + 2, x0 + 2, x1 - 2, FURNR[3]);
+    t.hline(y + 2, x0 + 2, x0 + 4, FURNR[1]);
     const hot = rnd() < 0.5;
     const led = hot ? ACCENT : [40, 50, 66];
-    t.set(5, y + 1, led);
-    halo(t, 5, y + 1, led, FURNR);                 // §6 LED halo (active bays only)
-    t.set(10, y + 1, hot ? GOLD : ACCENT);          // paired contrast LED, no halo (budget)
+    t.set(x0 + 2, y + 1, led);
+    if (hot) halo(t, x0 + 2, y + 1, led, FURNR);     // §6 LED halo (active bays only)
+    t.set(x1 - 2, y + 1, hot ? GOLD : ACCENT);       // paired contrast LED, no halo (budget)
   }
-  for (let y = 5; y <= 13; y += 2) t.set(12, y, FURNR[2]);       // fan grille column
-  bounce(t, 4, 11, 14, FURNR);                      // §7 underside
+  for (let y = 6; y <= y1 - 1; y += 2) t.set(x1, y, FURNR[2]);    // fan grille column
+  bounce(t, x0 + 1, x1 - 1, y1, FURNR);               // §7 underside
 }
 
-/** Monitor — THE hero tiles (Phase 3). Two-tier beveled bezel (§5), diagonal
- *  reflection streak, seeded code-lines with syntax hue variety (§6 screen
- *  content), glow spill onto the bezel's bottom edge, stand + shadow + bounce.
- *  OFF: near-black + one dim standby LED (budget 1 emissive). */
+/** Monitor — THE hero tiles (Phase 3), authored for 24px: wider two-tier
+ *  beveled bezel, 2px code-lines with a CURSOR block, diagonal reflection
+ *  streak, glow spill, stand + shadow + bounce. OFF: near-black + standby LED. */
 function paintScreen(t, on, rnd) {
   // outer bezel — raised bevel, noised face
-  t.rect(1, 2, 14, 12, FURNR[2]);
-  noise(t, 1, 2, 14, 12, rnd, 3);
-  bevel(t, 1, 2, 14, 12, FURNR);
+  t.rect(1, 3, 22, 18, FURNR[2]);
+  noise(t, 1, 3, 22, 18, rnd, 3);
+  bevel(t, 1, 3, 22, 18, FURNR);
   // screen well — recessed (inverted bevel), dark navy
-  t.rect(2, 3, 13, 11, SCREEN_OFF);
-  bevel(t, 2, 3, 13, 11, FURNR, true);
+  t.rect(2, 4, 21, 16, SCREEN_OFF);
+  bevel(t, 2, 4, 21, 16, FURNR, true);
   if (on) {
     const CODE = [88, 178, 255];        // cyan statements
     const CODE2 = [244, 211, 94];       // gold keywords (syntax variety)
-    const CODE3 = [178, 208, 235];       // pale comments
-    // code lines: 1px rows, varying indent/width, seeded; blank rows breathe
-    for (let y = 4; y <= 10; y++) {
+    const CODE3 = [178, 208, 235];      // pale comments
+    // code lines: 2px-tall rows with varying indent/width, seeded
+    for (let y = 5; y <= 14; y += 2) {
       if (rnd() < 0.25) continue;
-      const indent = 3 + Math.floor(rnd() * 2);
-      const w = 2 + Math.floor(rnd() * 7);
+      const indent = 4 + Math.floor(rnd() * 3);
+      const w = 3 + Math.floor(rnd() * 10);
       const roll = rnd();
-      const hue = roll < 0.2 ? CODE2 : (roll < 0.32 ? CODE3 : CODE);
-      t.hline(y, indent, Math.min(13, indent + w), hue);
+      const hue = roll < 0.2 ? CODE2 : (roll < 0.34 ? CODE3 : CODE);
+      t.hline(y, indent, Math.min(21, indent + w), hue);
+      if (rnd() < 0.4) t.hline(y + 1, indent + 2, Math.min(21, indent + Math.floor(w * 0.5)), hue);
     }
+    // cursor block at a seeded spot on the last line (a live editor)
+    const cx = 6 + Math.floor(rnd() * 8);
+    t.rect(cx, 15, cx + 1, 15, [200, 230, 250]);
     // diagonal reflection streak (§8 gloss): upper-left to mid, translucent
-    for (let i = 0; i < 5; i++) {
-      t.set(3 + i, 3 + i, [190, 220, 245], 120);
-      t.set(4 + i, 3 + i, [190, 220, 245], 90);
+    for (let i = 0; i < 8; i++) {
+      t.set(3 + i, 4 + i, [190, 220, 245], 120);
+      t.set(4 + i, 4 + i, [190, 220, 245], 90);
     }
-    t.hline(3, 2, 13, [140, 205, 255]);              // top scanline sheen
-    t.hline(11, 3, 12, [40, 80, 140]);              // glow spill onto bezel (§6)
-    t.set(13, 3, ACCENT);                            // power corner-dot
-    halo(t, 13, 3, ACCENT, FURNR);                   // its 1px halo
+    t.hline(4, 2, 21, [140, 205, 255]);              // top scanline sheen
+    t.hline(17, 3, 20, [40, 80, 140]);               // glow spill onto bezel (§6)
+    t.set(20, 4, ACCENT);                            // power corner-dot
+    halo(t, 20, 4, ACCENT, FURNR);                   // its 1px halo
   } else {
-    t.hline(6, 3, 12, [20, 25, 38]);
-    t.set(3, 11, [64, 84, 64]);                      // dim standby LED — no halo (off)
+    t.hline(9, 3, 20, [20, 25, 38]);
+    t.set(4, 15, [64, 84, 64]);                      // dim standby LED — no halo (off)
   }
   // stand: neck + foot + ground shadow + bounce
-  t.rect(6, 13, 9, 13, FURNR[3]);
-  t.rect(5, 14, 10, 14, FURNR[2]);
-  t.hline(14, 5, 10, FURNR[3]);
-  bounce(t, 5, 10, 14, FURNR);
+  t.rect(9, 19, 14, 20, FURNR[3]);
+  t.rect(7, 21, 16, 21, FURNR[2]);
+  t.hline(MAX, 7, 16, FURNR[3]);
+  bounce(t, 7, 16, 21, FURNR);
 }
 
-/** Charging station (Phase 3 signature): arc-ring pad — segmented glowing
- *  ring (each segment earns a halo), gold charge pips with a core specular,
- *  docked-device port notch, floor bounce. */
+/** Charging station (Phase 3 signature), authored for 24px: arc-ring pad —
+ *  TWELVE segments with gaps, gold charge pips with specular core, docked
+ *  port notch, floor bounce. */
 function paintCharger(t) {
-  t.rect(2, 1, 13, 14, FURNR[2]);
-  noise(t, 2, 1, 13, 14, seeded(77), 4);
-  bevel(t, 2, 1, 13, 14, FURNR);
-  t.rect(3, 2, 12, 6, FURNR[4]);                     // dark dock well (recessed)
-  bevel(t, 3, 2, 12, 6, FURNR, true);
-  // arc ring: 4 segments with gaps (energy ring, not a box); two halos = budget
+  t.rect(2, 1, 21, 21, FURNR[2]);
+  noise(t, 2, 1, 21, 21, seeded(77), 4);
+  bevel(t, 2, 1, 21, 21, FURNR);
+  t.rect(4, 3, 19, 9, FURNR[4]);                     // dark dock well (recessed)
+  bevel(t, 4, 3, 19, 9, FURNR, true);
+  // arc ring: 12 segments with gaps (a real circle in 24px); halos = budget
   const R = ACCENT;
-  t.hline(3, 5, 7, R); t.hline(3, 9, 11, R);
-  t.hline(6, 5, 6, R); t.hline(6, 10, 11, R);
-  t.vline(5, 4, 5, R); t.vline(5, 10, 11, R);
-  t.vline(6, 4, 5, R); t.vline(6, 10, 11, R);
-  halo(t, 5, 3, R, FURNR); halo(t, 11, 3, R, FURNR);  // two halos = the budget
-  // charge pips: gold with a specular core pixel (§8)
-  t.set(7, 5, GOLDR[1]); t.set(8, 5, GOLDR[1]); t.set(7, 6, GOLDR[1]);
-  t.set(8, 5, GOLDR[0]);                            // the ONE specular
-  for (const x of [4, 8, 12]) t.set(x, 9, GOLDR[2]);
+  const C = 11;                                      // center col (ring at rows 4-8)
+  for (const [dx, dy] of [[-3, 0], [3, 0], [-2, 2], [2, 2], [0, 3], [0, -3], [-2, -2], [2, -2], [-3, 1], [3, 1], [-1, 3], [1, 3]]) {
+    t.set(C + dx, 6 + dy, R);
+  }
+  halo(t, C - 3, 3, R, FURNR); halo(t, C + 3, 3, R, FURNR);   // two halos = budget
+  // charge pips: gold cluster with the ONE specular (§8)
+  t.set(10, 6, GOLDR[1]); t.set(11, 6, GOLDR[1]); t.set(12, 6, GOLDR[1]);
+  t.set(10, 7, GOLDR[1]); t.set(11, 7, GOLDR[0]); t.set(12, 7, GOLDR[1]);
+  for (const x of [5, 11, 17]) { t.set(x, 13, GOLDR[2]); t.set(x + 1, 13, GOLDR[2]); }
   // port notch bottom-center (recessed)
-  t.rect(7, 11, 9, 12, FURNR[4]);
-  bevel(t, 7, 11, 9, 12, FURNR, true);
-  t.hline(13, 3, 12, FURNR[3]);
-  bounce(t, 3, 12, 14, FURNR);
+  t.rect(10, 17, 13, 19, FURNR[4]);
+  bevel(t, 10, 17, 13, 19, FURNR, true);
+  t.hline(MAX - 1, 4, 19, FURNR[3]);
+  bounce(t, 3, 20, 21, FURNR);
 }
 
-/** Holo-pylon (Phase 3 signature): dark mast, floating hologram cube with a
- *  chromatic fringe (1px cyan offset + 1px pink — echoes LYLA), brighter
- *  core, base light spill, floor bounce. The hologram is the emissive zone. */
+/** Holo-pylon (Phase 3 signature), authored for 24px: dark mast, a 6×6
+ *  hologram cube with chromatic fringe (cyan/pink offsets — echoes LYLA),
+ *  brighter core, emitter bevel, base light spill, floor bounce. */
 function paintPylon(t) {
-  t.rect(5, 6, 10, 14, FURNR[3]);
-  noise(t, 5, 6, 10, 14, seeded(88), 4);
-  t.vline(5, 6, 14, FURNR[4]);
-  t.rect(4, 3, 11, 5, FURNR[2]);                     // emitter head
-  bevel(t, 4, 3, 11, 5, FURNR);
-  t.hline(4, 5, 10, ACCENT);                          // emitter line
-  t.set(7, 4, GOLD); t.set(8, 4, GOLD);
-  // hologram cube: 3 concentric translucent golds + chromatic fringe
-  t.rect(6, 8, 10, 12, [244, 211, 94], 90);
-  t.rect(7, 9, 9, 11, [244, 211, 94], 150);
-  t.set(8, 10, [255, 244, 180], 235);                 // bright core
-  t.vline(6, 9, 12, [120, 220, 255], 110);            // cyan fringe (left)
-  t.vline(10, 8, 11, [255, 150, 220], 80);           // pink fringe (right)
-  t.hline(7, 7, 9, [120, 220, 255], 70);             // cyan fringe (top)
+  t.rect(8, 9, 15, 21, FURNR[3]);
+  noise(t, 8, 9, 15, 21, seeded(88), 4);
+  t.vline(8, 9, 21, FURNR[4]);
+  t.rect(6, 4, 17, 8, FURNR[2]);                     // emitter head
+  bevel(t, 6, 4, 17, 8, FURNR);
+  t.hline(6, 7, 16, ACCENT);                         // emitter line (2px)
+  t.hline(7, 7, 16, [100, 160, 255]);
+  t.set(11, 5, GOLD); t.set(12, 5, GOLD); t.set(11, 6, GOLDR[1]);
+  // hologram cube: 3 concentric translucent golds, 6×6, chromatic fringe
+  t.rect(8, 11, 15, 18, [244, 211, 94], 90);
+  t.rect(10, 13, 13, 16, [244, 211, 94], 150);
+  t.set(11, 14, [255, 244, 180], 235); t.set(12, 14, [255, 244, 180], 220);
+  t.set(12, 15, [255, 244, 180], 235);
+  t.vline(8, 12, 17, [120, 220, 255], 110);          // cyan fringe (left)
+  t.vline(15, 11, 18, [255, 150, 220], 80);         // pink fringe (right)
+  t.hline(10, 9, 14, [120, 220, 255], 70);           // cyan fringe (top)
   // base light spill + bounce
-  t.hline(7, 5, 10, [50, 46, 30], 255);
-  bounce(t, 5, 10, 14, FURNR);
-  t.rect(6, 15, 9, 15, FURNR[4]);                    // base shadow
+  t.hline(8, 8, 15, [50, 46, 30]);
+  bounce(t, 8, 15, 21, FURNR);
+  t.rect(9, MAX, 14, MAX, FURNR[4]);                // base shadow
 }
 
 // ── atlas assemblers ─────────────────────────────────────────────────────────
-/** Atlas 1 — the main floor/furniture page (firstgid 1, 512 tiles, 256×512). */
+// Atlas dims = 16 columns × TILE px wide; height = rows × TILE. Same gid
+// layout and classification as the 16px era — the map contract is size, not
+// layout, and TiledMapRenderer scales by mapData.tilewidth.
+function blitInto(img, imgW, idx, t) {
+  const col = idx % 16, row = Math.floor(idx / 16);
+  const ox = col * TILE, oy = row * TILE;
+  for (let y = 0; y <= MAX; y++) {
+    for (let x = 0; x <= MAX; x++) {
+      const i = (y * TILE + x) * 4;
+      const o = ((oy + y) * imgW + ox + x) * 4;
+      img[o] = t.px[i]; img[o + 1] = t.px[i + 1]; img[o + 2] = t.px[i + 2]; img[o + 3] = t.px[i + 3];
+    }
+  }
+}
+
+/** Atlas 1 — the main floor/furniture page (firstgid 1, 512 tiles, 384×768). */
 function buildMain() {
-  const W = 256, H = 512;
+  const W = 16 * TILE, H = 32 * TILE;
   const img = new Uint8ClampedArray(W * H * 4);
   const blit = (idx, painter, arg) => {
     const t = new Tile();
     painter(t, arg);
-    const col = idx % 16, row = Math.floor(idx / 16);
-    const ox = col * 16, oy = row * 16;
-    for (let y = 0; y < 16; y++) {
-      for (let x = 0; x < 16; x++) {
-        const i = (y * 16 + x) * 4;
-        const o = ((oy + y) * W + ox + x) * 4;
-        img[o] = t.px[i]; img[o + 1] = t.px[i + 1]; img[o + 2] = t.px[i + 2]; img[o + 3] = t.px[i + 3];
-      }
-    }
+    blitInto(img, W, idx, t);
   };
 
   // local-gid classification (local gid = gid - 1, zero-based tile index)
@@ -494,9 +538,9 @@ function buildMain() {
   return encodePng(W, H, img);
 }
 
-/** Atlas 2 — floors/walls page (firstgid 513, 512 tiles, 256×512). */
+/** Atlas 2 — floors/walls page (firstgid 513, 512 tiles, 384×768). */
 function buildA5() {
-  const W = 256, H = 512;
+  const W = 16 * TILE, H = 32 * TILE;
   const img = new Uint8ClampedArray(W * H * 4);
   for (let local = 0; local < 512; local++) {
     const rnd = seeded(local + 9001);
@@ -505,20 +549,14 @@ function buildA5() {
     if (row < 16) paintFloor(t, rnd);            // floor pages
     else if (row < 24) paintWallCap(t);
     else paintWall(t, rnd);                     // wall pages
-    const col = local % 16;
-    const ox = col * 16, oy = row * 16;
-    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
-      const i = (y * 16 + x) * 4;
-      const o = ((oy + y) * W + ox + x) * 4;
-      img[o] = t.px[i]; img[o + 1] = t.px[i + 1]; img[o + 2] = t.px[i + 2]; img[o + 3] = t.px[i + 3];
-    }
+    blitInto(img, W, local, t);
   }
   return encodePng(W, H, img);
 }
 
-/** Atlas 3 — interiors page (firstgid 1025, 1424 tiles, 256×1424). */
+/** Atlas 3 — interiors page (firstgid 1025, 1424 tiles, 384×2136). */
 function buildInteriors() {
-  const W = 256, H = 1424;
+  const W = 16 * TILE, H = 89 * TILE;
   const img = new Uint8ClampedArray(W * H * 4);
   for (let local = 0; local < 1424; local++) {
     const rnd = seeded(local + 4242);
@@ -527,13 +565,7 @@ function buildInteriors() {
     if (row < 4) paintFloor(t, rnd);             // a few floor pieces up top
     else if (local % 3 === 0) paintRack(t, rnd);
     else paintFurniture(t, rnd);
-    const col = local % 16;
-    const ox = col * 16, oy = row * 16;
-    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
-      const i = (y * 16 + x) * 4;
-      const o = ((oy + y) * W + ox + x) * 4;
-      img[o] = t.px[i]; img[o + 1] = t.px[i + 1]; img[o + 2] = t.px[i + 2]; img[o + 3] = t.px[i + 3];
-    }
+    blitInto(img, W, local, t);
   }
   return encodePng(W, H, img);
 }
@@ -545,10 +577,10 @@ function buildInteriors() {
 const lum = (c) => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
 function asciiTile(t) {
   const rows = [];
-  for (let y = 0; y < 16; y++) {
+  for (let y = 0; y <= MAX; y++) {
     let line = '';
-    for (let x = 0; x < 16; x++) {
-      const i = (y * 16 + x) * 4;
+    for (let x = 0; x <= MAX; x++) {
+      const i = (y * TILE + x) * 4;
       const r = t.px[i], g = t.px[i + 1], b = t.px[i + 2], a = t.px[i + 3];
       if (a === 0) { line += ' '; continue; }
       if (a < 200) { line += '~'; continue; }
