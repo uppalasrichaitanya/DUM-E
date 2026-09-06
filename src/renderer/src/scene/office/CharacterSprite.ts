@@ -88,6 +88,56 @@ export class CharacterSprite {
     return ANIM_FRAMES[anim].map((col) => this.frames[row][col]);
   }
 
+  // ── idle life ─────────────────────────────────────────────────────────────
+  // The frame grid has no dedicated blink frame (frames are shared across the
+  // cast), so the blink is a 2px translucent lid painted over the face-screen
+  // rows (the top ~40% of the sprite at the 24px Tier 2 dims) for ~130ms,
+  // every 2.6-4.2s (seeded per instance so a row of robots doesn't blink in
+  // unison). The bob lifts the whole sprite ≤1px on a slow sine while idle —
+  // cheap, and it reads as breathing without touching the gait system.
+  private blinkGraphics: Graphics | null = null;
+  private blinkNext = 2 + Math.random() * 2.2;
+  private blinkT = -1;
+  private bobT = Math.random() * Math.PI * 2;
+  private static readonly BLINK_LID_MS = 0.13;
+
+  update(dt: number): void {
+    // bob only while idle — walking/typing animation already moves
+    if (this.currentAnim === 'idle' && this.cropMask?.visible !== true) {
+      this.bobT += dt * 1.6;
+      this.sprite.y = -Math.max(0, Math.sin(this.bobT)) * 1;
+    } else {
+      this.sprite.y = 0;
+    }
+    // blink
+    if (this.blinkT >= 0) {
+      this.blinkT += dt;
+      if (this.blinkT > CharacterSprite.BLINK_LID_MS) {
+        this.blinkGraphics!.visible = false;
+        this.blinkT = -1;
+        this.blinkNext = 2.4 + Math.random() * 2.2;
+      }
+    } else {
+      this.blinkNext -= dt;
+      if (this.blinkNext <= 0) {
+        if (!this.blinkGraphics) {
+          this.blinkGraphics = new Graphics();
+          this.blinkGraphics.eventMode = 'none';
+          this.container.addChild(this.blinkGraphics);
+        }
+        // lid over the face screen: rows 7-12 of the 48px sprite, inset to
+        // the head's screen columns (matches portraitArt's screen bounds)
+        const w = this.frameW;
+        this.blinkGraphics.clear();
+        this.blinkGraphics
+          .rect(-w / 2 + w * 0.30, -this.frameH + 7 * (this.frameH / 48), w * 0.42, 6 * (this.frameH / 48))
+          .fill({ color: 0x100e1a, alpha: 0.92 });
+        this.blinkGraphics.visible = true;
+        this.blinkT = 0;
+      }
+    }
+  }
+
   setAnimation(anim: AnimState, direction: Direction): void {
     if (anim === this.currentAnim && direction === this.currentDirection) return;
 

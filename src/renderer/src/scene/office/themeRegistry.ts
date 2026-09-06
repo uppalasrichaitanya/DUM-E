@@ -122,6 +122,31 @@ export interface ThemeCast {
   defaultCharacter: string;
 }
 
+/** Ambient idle-life spots (AmbientLayer). Each kind paints a different
+ *  ephemeral effect over the static tiles; coords are tile positions printed
+ *  by the map generator from the same layout constants that painted the map. */
+export type AmbientKind = 'led' | 'strip' | 'pylon' | 'steam' | 'beam';
+
+export interface AmbientSpot {
+  kind: AmbientKind;
+  x: number;
+  y: number;
+  /** horizontal length in tiles (strip) */
+  len?: number;
+  /** seeded per-spot phase so neighbors don't blink in sync */
+  phase?: number;
+  /** hex color override (defaults per kind in AmbientLayer) */
+  color?: number;
+  /** LEDs: "hot" bays flicker faster (activity read) */
+  hot?: boolean;
+}
+
+export interface AmbientConfig {
+  spots: AmbientSpot[];
+  /** tile coord the task-done pulse ring ripples from (the holo-table). */
+  pulseOrigin?: Tile;
+}
+
 /** The full contract a theme must supply. See report §A (theme contract). */
 export interface ThemeConfig {
   id: ThemeId;
@@ -142,6 +167,9 @@ export interface ThemeConfig {
   monitor: MonitorConfig;
   palette: PaletteConfig;
   cast: ThemeCast;
+  /** Optional idle-life spots (blinking LEDs, shimmer, steam, beams) the
+   *  AmbientLayer paints over the static tiles. Themes without it stay still. */
+  ambient?: AmbientConfig;
 }
 
 /** The existing office, expressed as a theme. Values are copied verbatim from
@@ -281,6 +309,38 @@ export const DUM_LAB_THEME: ThemeConfig = {
   // The workshop paints the same OFF/ON monitor blocks as the office (the pc
   // stamps came from office.tmj), so the DeskScreen overlay is identical.
   monitor: OFFICE_THEME.monitor,
+  // Idle life (AmbientLayer): rack LEDs, breathing wall strips, pylon
+  // shimmer + coolant drips, charger steam, window beams with motes. Every
+  // coordinate is printed by make-dum-lab-map.cjs from the same layout
+  // constants that painted the tiles.
+  ambient: {
+    pulseOrigin: { x: 20, y: 11 },
+    spots: [
+      // rack bays — LEDs on seeded phases; every 3rd bay runs hot (generator parity)
+      { kind: 'led', x: 13, y: 3, phase: 0, hot: true },
+      { kind: 'led', x: 15, y: 3, phase: 1 },
+      { kind: 'led', x: 19, y: 3, phase: 2 },
+      { kind: 'led', x: 21, y: 3, phase: 3, hot: true },
+      { kind: 'led', x: 25, y: 3, phase: 4 },
+      { kind: 'led', x: 27, y: 3, phase: 5 },
+      { kind: 'led', x: 29, y: 3, phase: 6, hot: true },
+      { kind: 'led', x: 33, y: 3, phase: 7 },
+      { kind: 'led', x: 35, y: 3, phase: 8 },
+      // breathing backlit strips on the plain wall segments
+      { kind: 'strip', x: 11, y: 2, len: 2, phase: 11 },
+      { kind: 'strip', x: 18, y: 2, len: 3, phase: 18 },
+      { kind: 'strip', x: 33, y: 2, len: 3, phase: 33 },
+      // holo-pylon shimmer + coolant drips
+      { kind: 'pylon', x: 16, y: 9, phase: 0, color: 0xf4d35e },
+      { kind: 'pylon', x: 24, y: 9, phase: 1, color: 0xf4d35e },
+      // steam at the arc-ring charger
+      { kind: 'steam', x: 32, y: 22, phase: 0 },
+      // window light beams + drifting motes
+      { kind: 'beam', x: 16, y: 3, phase: 0 },
+      { kind: 'beam', x: 23, y: 3, phase: 1 },
+      { kind: 'beam', x: 30, y: 3, phase: 2 },
+    ],
+  },
   palette: {
     // Lab night: the deep navy of the splash (--cth-lab-bg family).
     background: 0x04101e,

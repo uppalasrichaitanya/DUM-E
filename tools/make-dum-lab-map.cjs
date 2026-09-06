@@ -340,3 +340,23 @@ console.log('coffee:', JSON.stringify({
 }));
 console.log('anchors:', JSON.stringify({ calendar: { x: 4, y: 1 }, boards: { x: 19, y: 10 }, clock: { x: 2, y: 1 } }));
 console.log('errandSpots:', JSON.stringify(ERRANDS.map((e) => ({ ...e, godOnly: e.godOnly ?? undefined }))));
+
+// ── ambient spots (AmbientLayer) — same layout constants, printed for the theme ──
+const AMBIENT = {
+  pulseOrigin: { x: 20, y: 11 },   // holo-table center
+  spots: [],
+};
+// rack LEDs: one per rack bay along the wall (skip window columns)
+for (let x = LAYOUT.RACK_X0; x <= LAYOUT.RACK_X1; x += 2) {
+  if (LAYOUT.WINDOW_XS.some((w) => x === w || x === w + 1)) continue;
+  AMBIENT.spots.push({ kind: 'led', x, y: LAYOUT.RACK_ROW_Y, phase: AMBIENT.spots.length, hot: (AMBIENT.spots.length % 3) === 0 });
+}
+// breathing strips on the plain wall below the cap, between features
+for (const sx of [11, 18, 33]) AMBIENT.spots.push({ kind: 'strip', x: sx, y: 2, len: sx === 11 ? 2 : 3, phase: sx });
+// pylon shimmer at both pylons
+LAYOUT.PYLONS.forEach((p, i) => AMBIENT.spots.push({ kind: 'pylon', x: p.x, y: p.y, phase: i, color: 0xf4d35e }));
+// steam at the arc-ring charger (the coffee machine stand's facing tile)
+AMBIENT.spots.push({ kind: 'steam', x: 32, y: 22, phase: 0 });
+// window beams
+LAYOUT.WINDOW_XS.forEach((wx, i) => AMBIENT.spots.push({ kind: 'beam', x: wx, y: LAYOUT.RACK_ROW_Y, phase: i }));
+console.log('ambient:', JSON.stringify(AMBIENT));

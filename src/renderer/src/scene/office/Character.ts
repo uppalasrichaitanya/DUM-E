@@ -556,6 +556,8 @@ export class Character {
 
     this.thoughtBubble.update(dt);
     if (!this.isVisible) return;
+    // idle life: gentle bob + the eye blink (CharacterSprite.update)
+    this.sprite.update(dt);
 
     // Working agents stay seated; between tasks they wander the office.
     // A cheer, a watering or a cigar holds roaming so the effect plays in place.

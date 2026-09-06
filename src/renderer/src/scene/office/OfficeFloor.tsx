@@ -7,6 +7,7 @@ import { useStore, type Agent } from '@/store/store';
 import { TiledMapRenderer } from './TiledMapRenderer';
 import { Camera } from './Camera';
 import { Character, paintCup } from './Character';
+import { AmbientLayer } from './AmbientLayer';
 import { DeskScreen } from './DeskScreen';
 import { MessageEnvelope, type MessageAct } from './MessageEnvelope';
 import { hexToNumber, DEFAULT_CHARACTER } from './cast';
@@ -240,6 +241,10 @@ export function OfficeFloor() {
     // broadcast doesn't bury the floor in paper.
     const envelopes: MessageEnvelope[] = [];
     const MAX_ENVELOPES = 16;
+    // Idle-life ambience (blinking LEDs, pylon shimmer, steam, beams, pulse
+    // rings). Created per theme inside init(); `ambient` stays undefined for
+    // themes without spots so those floors stay perfectly still.
+    let ambientLayer: AmbientLayer | undefined;
 
     const init = async () => {
       // Load the active theme bundle (falls back to 'office' on a bad/absent bundle).
@@ -288,6 +293,15 @@ export function OfficeFloor() {
       const mapRenderer = new TiledMapRenderer(resolveThemeMap(theme), tilesetTextures);
       world.addChild(mapRenderer.getContainer());
       const charLayer = mapRenderer.getCharacterContainer();
+      // Idle-life ambience: painted into the map's character container ABOVE
+      // the tile layers (it overlays static art) but with zIndex below every
+      // agent (agents sit at their foot-row z), so robots always draw over
+      // steam/beams, and LEDs never wash out a walking avatar.
+      if (theme.ambient && theme.ambient.spots.length > 0) {
+        ambientLayer = new AmbientLayer(mapRenderer, theme.ambient);
+        ambientLayer.container.zIndex = 1;   // one tile above the floor's base z
+        charLayer.addChild(ambientLayer.container);
+      }
       const tileCount = mapRenderer.getContainer().children.reduce(
         (n, c) => n + ((c as Container).children?.length ?? 0), 0);
       console.log(`[OfficeFloor] map ${mapRenderer.width}x${mapRenderer.height}, ${tileCount} tile sprites rendered`);
@@ -1355,6 +1369,9 @@ export function OfficeFloor() {
             } else if (t.status === 'done' && oldS !== 'done') {
               const actor = actorFor(old?.assignee ?? t.assignee, false);
               if (actor) mv = { kind: 'archive', taskId: t.id, actorId: actor, after, carryColor: NOTE_COLORS.done, stand: ARCHIVE_STAND, thought: 'filing it as done ✔' };
+              // the reactor notices: one ripple from the holo-table per
+              // completed task, whatever theme floor is running
+              ambientLayer?.pulse();
             } else if (t.status === 'blocked' && oldS !== 'blocked') {
               const actor = actorFor(old?.assignee ?? t.assignee, false);
               if (actor) mv = { kind: 'pin', taskId: t.id, actorId: actor, after, carryColor: NOTE_COLORS.blocked, stand: PIN_STAND, thought: 'this one is stuck 😤' };
@@ -1681,6 +1698,7 @@ export function OfficeFloor() {
       const onTick = (ticker: Ticker) => {
         const dt = ticker.deltaMS / 1000;
         camera.update(dt);
+        ambientLayer?.update(dt);
         // Thought clouds counter-scale against the camera so their text never
         // renders below 1:1 screen size when the window/world shrinks.
         const zoom = world.scale.x;
