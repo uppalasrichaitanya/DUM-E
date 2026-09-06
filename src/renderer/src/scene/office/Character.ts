@@ -41,15 +41,16 @@ const speedFor = (tileSize: number): number => SPEED_TILES_PER_SEC * tileSize;
 // (down, for up/side seats; the desk is behind them) so the head settles at the
 // monitor and the torso rests on the chair. Down-facing agents (desk in front)
 // are pushed into the desk instead.
-const SIT_OFFSET = 5;
-const SIT_OFFSET_DOWN = 12;
-const SIT_OFFSET_UP = 5;   // up-facing: drop the body down onto the chair
-const SIT_OFFSET_SIDE = 4; // left/right: a smaller drop plus the sideways tuck
-// Pixels cropped off the bottom of the 32px sprite while seated. Up/side seats
+// Scaled for the 48px Tier 2 sprite (values were tuned at 32px; ×1.5).
+const SIT_OFFSET = 8;
+const SIT_OFFSET_DOWN = 18;
+const SIT_OFFSET_UP = 8;    // up-facing: drop the body down onto the chair
+const SIT_OFFSET_SIDE = 6;  // left/right: a smaller drop plus the sideways tuck
+// Pixels cropped off the bottom of the 48px sprite while seated. Up/side seats
 // trim just the feet so most of the torso shows and fills the chair seat; the
 // down-facing crop is larger so the legs tuck under the desk in front.
-const SEAT_LEG_CROP = 8;
-const SEAT_BACK_CROP = 2;
+const SEAT_LEG_CROP = 12;
+const SEAT_BACK_CROP = 3;
 
 // Idle 30/30 loop: between tasks an agent alternates roaming the floor with
 // resting at its own desk — for every IDLE_LINGER_SECONDS it spends lingering it

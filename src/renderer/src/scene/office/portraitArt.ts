@@ -14,17 +14,20 @@
 
 import type { OfficeCharacterName } from './cast';
 
-export const PORTRAIT_W = 18;
-export const PORTRAIT_H = 28;
+export const PORTRAIT_W = 24;
+export const PORTRAIT_H = 42;
 // In-scene walking sprite: same width + upper body as the portrait, taller to add the base.
-export const SCENE_W = 18;
-export const SCENE_H = 32;
+export const SCENE_W = 24;
+export const SCENE_H = 48;
 const OUTLINE: RGB = [24, 18, 30];
-const HX0 = 4, HX1 = 13; // head shell columns
-/** MODOK dome silhouette: [row, x0, x1] — egg widest at the brain. */
+// Head shell columns on the 24px canvas (was 4..13 on 18px).
+const HX0 = 6, HX1 = 17;
+/** MODOK dome silhouette: [row, x0, x1] — egg widest at the brain (24px canvas). */
 const BIG_EDGE: [number, number, number][] = [
-  [2, 7, 10], [3, 6, 11], [4, 5, 12], [5, 4, 13],
-  [15, 4, 13], [16, 5, 12], [17, 5, 12], [18, 6, 11], [19, 7, 10],
+  [3, 9, 14], [4, 8, 15], [5, 7, 16], [6, 6, 17],
+  [6, 6, 17], [7, 5, 18], [8, 5, 18], [9, 5, 18],
+  [21, 5, 18], [22, 6, 17], [23, 6, 17], [24, 7, 16],
+  [25, 8, 15], [26, 9, 14],
 ];
 
 type RGB = [number, number, number];
@@ -104,55 +107,62 @@ interface Recipe {
 }
 
 // ─── head ───────────────────────────────────────────────────────────────────
-/** Rounded metal dome rows 4-16, lit top-left (Art Bible §1): highlight
- *  crescent on the upper-left of the curve, core shadow on the lower-right,
- *  jaw shadow, ear pods. */
+/** Rounded metal dome on the 24px canvas, lit top-left (Art Bible §1):
+ *  highlight crescent on the upper-left of the curve, core shadow on the
+ *  lower-right, jaw shadow, panel seam + rivets, ear pods. */
 function drawShellHead(buf: Buf, r: Recipe): void {
   const rp = ramp5(r.shell);
   const [hi, base, sh, core] = [rp[1], rp[2], rp[3], rp[4]];
   if (r.bigHead) {
-    // MODOK: giant egg dome rows 2-19 — widest at the brain, tapering chin.
-    for (let y = 2; y <= 19; y++) {
-      let x0 = 3, x1 = 14;
+    // MODOK: giant egg dome rows 3-26 — widest at the brain, tapering chin.
+    for (let y = 3; y <= 26; y++) {
+      let x0 = 6, x1 = 17;
       for (const [ey, a, b] of BIG_EDGE) if (ey === y) { x0 = a; x1 = b; }
       for (let x = x0; x <= x1; x++) set(buf, x, y, base);
     }
     // key light on the egg's upper-left curve (§1)
-    for (const [x, y] of [[5, 4], [6, 4], [7, 4], [4, 5], [5, 5], [4, 6], [4, 7], [4, 8], [4, 9]] as const) set(buf, x, y, hi);
+    for (const [x, y] of [[8, 3], [9, 3], [10, 3], [7, 4], [8, 4], [7, 5], [6, 6], [6, 7], [6, 8], [6, 9]] as const) set(buf, x, y, hi);
+    // vertical panel seam down the egg's midline + rivets (24px has room)
+    for (let y = 6; y <= 20; y++) set(buf, 11, y, sh);
+    for (const [x, y] of [[10, 8], [13, 8], [10, 16], [13, 16]] as const) set(buf, x, y, sh);
     // core shadow along the lower-right (§1)
-    for (let y = 10; y <= 18; y++) set(buf, 13, y, sh);
-    for (let y = 14; y <= 18; y++) set(buf, 12, y, sh);
-    for (const x of [10, 11, 12]) set(buf, x, 18, core);
-    for (const x of [8, 9, 10, 11]) set(buf, x, 19, core);
-    for (let y = 6; y <= 13; y++) { set(buf, 3, y, sh); set(buf, 14, y, sh); }
-    for (let x = 7; x <= 10; x++) set(buf, x, 19, sh);
-    if (r.sheen) set(buf, 5, 4, rp[0]);   // the single specular (§8)
-    // big ear pods
-    for (const ex of [2, 15]) { set(buf, ex, 10, base); set(buf, ex, 11, base); set(buf, ex, 12, sh); }
+    for (let y = 14; y <= 25; y++) set(buf, 17, y, sh);
+    for (let y = 20; y <= 25; y++) set(buf, 16, y, sh);
+    for (const x of [14, 15, 16]) set(buf, x, 25, core);
+    for (const x of [11, 12, 13, 14]) set(buf, x, 26, core);
+    for (let y = 8; y <= 20; y++) { set(buf, 5, y, sh); set(buf, 18, y, sh); }
+    if (r.sheen) set(buf, 8, 3, rp[0]);   // the single specular (§8)
+    // big ear pods (2px wide now)
+    for (const ex of [3, 20]) { set(buf, ex, 14, base); set(buf, ex + 1, 14, base); set(buf, ex, 15, base); set(buf, ex + 1, 15, sh); set(buf, ex, 16, sh); }
     return;
   }
-  for (let y = 4; y <= 16; y++) {
+  // normal dome rows 5-24, cols 6-17
+  for (let y = 5; y <= 24; y++) {
     for (let x = HX0; x <= HX1; x++) {
-      if (((x === HX0 || x === HX1) && (y === 4 || y === 16)) || ((x === 5 || x === 12) && y === 4)) continue;
+      if (((x === HX0 || x === HX1) && (y === 5 || y === 24)) || ((x === HX0 + 1 || x === HX1 - 1) && y === 5)) continue;
       set(buf, x, y, base);
     }
   }
-  // key-light crescent: upper-left of the dome (§1) — replaces the full-width sheen
-  for (const [x, y] of [[6, 4], [7, 4], [5, 5], [6, 5], [5, 6]] as const) set(buf, x, y, hi);
-  if (r.sheen) set(buf, 6, 4, rp[0]);    // specular at the curve top (§8 — glossy only)
+  // key-light crescent: upper-left of the dome (§1)
+  for (const [x, y] of [[8, 5], [9, 5], [10, 5], [7, 6], [8, 6], [7, 7], [7, 8]] as const) set(buf, x, y, hi);
+  if (r.sheen) set(buf, 8, 5, rp[0]);    // specular at the curve top (§8 — glossy only)
+  // panel seam across the crown (24px detail budget)
+  for (let x = 9; x <= 14; x++) set(buf, x, 8, sh);
+  set(buf, 9, 8, hi);                     // seam catch-light
   // core shadow: right edge + jaw
-  for (let y = 9; y <= 15; y++) set(buf, HX1, y, sh);
-  for (let x = HX0; x <= HX1; x++) set(buf, x, 16, sh);
-  set(buf, 12, 15, core); set(buf, 11, 16, core);
-  for (let y = 6; y < 16; y++) { set(buf, HX0, y, sh); }
+  for (let y = 13; y <= 23; y++) set(buf, HX1, y, sh);
+  for (let x = HX0; x <= HX1; x++) set(buf, x, 24, sh);
+  set(buf, HX1 - 1, 23, core); set(buf, HX1 - 2, 24, core);
+  for (let y = 7; y < 24; y++) { set(buf, HX0, y, sh); }
   // ear pods — lit pod on the key side, shadow pod on the far side
-  set(buf, HX0 - 1, 9, hi); set(buf, HX0 - 1, 10, base); set(buf, HX0 - 1, 11, sh);
-  set(buf, HX1 + 1, 9, base); set(buf, HX1 + 1, 10, sh); set(buf, HX1 + 1, 11, sh);
-  // neck
-  rect(buf, 7, 17, 10, 18, sh);
+  set(buf, HX0 - 1, 13, hi); set(buf, HX0 - 1, 14, base); set(buf, HX0 - 1, 15, sh);
+  set(buf, HX1 + 1, 13, base); set(buf, HX1 + 1, 14, sh); set(buf, HX1 + 1, 15, sh);
+  // neck (2px taller)
+  rect(buf, 10, 25, 13, 27, sh);
 }
 
-/** Inset dark face screen rows 6-13, cols 5-12 — the eyes and mouth glow on it. */
+/** Inset dark face screen on the 24px canvas: normal rows 7-20 cols 7-16;
+ *  MODOK's giant screen rows 8-21 cols 7-16. Eyes/mouth glow on it. */
 function drawFaceScreen(buf: Buf, r: Recipe): void {
   const screen: RGB = [16, 14, 26];
   const g = r.glow;
@@ -160,98 +170,102 @@ function drawFaceScreen(buf: Buf, r: Recipe): void {
   const dk: RGB = [10, 9, 18];
 
   if (r.bigHead) {
-    // MODOK's giant face screen rows 7-15, cols 5-12: scowl brows, big eyes, frown.
-    rect(buf, 5, 7, 12, 15, screen);
-    for (let x = 5; x <= 12; x++) { set(buf, x, 7, [30, 26, 44]); set(buf, x, 15, dk); }
-    // brow lines angled down toward the middle (accent-dark so they read on the screen)
+    // MODOK's giant face screen: scowl brows, big 3px eyes with glints, frown.
+    rect(buf, 7, 8, 16, 21, screen);
+    for (let x = 7; x <= 16; x++) { set(buf, x, 8, [30, 26, 44]); set(buf, x, 21, dk); }
+    // brow lines angled down toward the middle
     const accSh = shades(r.accent)[2];
-    set(buf, 5, 8, accSh); set(buf, 6, 9, accSh);
-    set(buf, 12, 8, accSh); set(buf, 11, 9, accSh);
-    // big round eyes with white glints
-    for (const [ex0, ex1] of [[6, 8], [10, 12]] as const) {
-      for (let y = 10; y <= 12; y++) for (let x = ex0; x <= ex1; x++) set(buf, x, y, g);
-      set(buf, ex0 + 1, 11, bright);
-      set(buf, ex0, 10, [255, 255, 255]);
+    set(buf, 7, 9, accSh); set(buf, 8, 10, accSh);
+    set(buf, 16, 9, accSh); set(buf, 15, 10, accSh);
+    // big eyes (3 wide x 4 tall now) with white glints + bright pupils
+    for (const [ex0, ex1] of [[8, 11], [13, 16]] as const) {
+      for (let y = 12; y <= 15; y++) for (let x = ex0; x <= ex1; x++) set(buf, x, y, g);
+      set(buf, ex0 + 1, 13, bright); set(buf, ex0 + 2, 13, bright);
+      set(buf, ex0 + 1, 14, bright);
+      set(buf, ex0 + 1, 12, [255, 255, 255]);
     }
-    // small frown: corners low, middle high
-    set(buf, 6, 14, g); set(buf, 11, 14, g);
-    for (let x = 7; x <= 10; x++) set(buf, x, 13, g);
+    // frown: corners low, middle high (2px band)
+    set(buf, 8, 20, g); set(buf, 9, 20, g); set(buf, 15, 20, g); set(buf, 16, 20, g);
+    for (let x = 10; x <= 13; x++) { set(buf, x, 19, g); }
     return;
   }
 
-  rect(buf, 5, 6, 12, 13, screen);
+  rect(buf, 7, 7, 16, 20, screen);
   // bevel: lighter top-left, darker bottom-right edges
   const [hi] = shades(r.shell);
-  for (let x = 5; x <= 12; x++) { set(buf, x, 6, [30, 26, 44]); }
-  set(buf, 5, 7, hi);
-  for (let x = 5; x <= 12; x++) set(buf, x, 13, dk);
+  for (let x = 7; x <= 16; x++) { set(buf, x, 7, [30, 26, 44]); }
+  set(buf, 7, 8, hi);
+  for (let x = 7; x <= 16; x++) set(buf, x, 20, dk);
 
   if (r.eye === 'round') {
-    // two round LED eyes: bright pupil core + a white glint
-    for (const cx of [7, 10]) {
-      set(buf, cx, 8, g); set(buf, cx - 1, 8, g); set(buf, cx + 1, 8, g);
-      set(buf, cx, 9, g); set(buf, cx, 7, g);
-      set(buf, cx, 9, bright);
-      set(buf, cx - 1, 7, [255, 255, 255]);
+    // two round LED eyes (3px wide now): bright pupil + white glint
+    for (const cx of [9, 14]) {
+      set(buf, cx, 11, g); set(buf, cx - 1, 11, g); set(buf, cx + 1, 11, g);
+      set(buf, cx - 1, 10, g); set(buf, cx, 10, g); set(buf, cx + 1, 10, g);
+      set(buf, cx, 12, g);
+      set(buf, cx, 11, bright);
+      set(buf, cx - 1, 10, [255, 255, 255]);
     }
   } else if (r.eye === 'visor') {
     if (r.scowl) {
-      // Ultron: the visor angles down at the edges — an angry chevron, 1px steps
-      set(buf, 8, 7, g); set(buf, 9, 7, g);            // apex, high
-      for (let x = 7; x <= 10; x++) set(buf, x, 8, g); // mid band
-      set(buf, 6, 9, g); set(buf, 11, 9, g);           // drooping ends, low
-      set(buf, 8, 8, bright); set(buf, 9, 8, bright);  // hot core at center
+      // Ultron: the visor angles down at the edges — an angry chevron (24px)
+      for (let x = 10; x <= 13; x++) set(buf, x, 10, g);        // apex, high
+      for (let x = 8; x <= 15; x++) set(buf, x, 11, g);         // mid band
+      set(buf, 7, 12, g); set(buf, 8, 12, g);                    // drooping ends, low
+      set(buf, 16, 12, g); set(buf, 15, 12, g);
+      set(buf, 11, 11, bright); set(buf, 12, 11, bright);       // hot core at center
     } else {
-      // a single glowing strip across the screen
-      for (let x = 6; x <= 11; x++) set(buf, x, 8, g);
-      set(buf, 6, 8, bright); set(buf, 7, 8, bright);
+      // a single glowing strip across the screen (2px tall now)
+      for (let x = 8; x <= 15; x++) { set(buf, x, 11, g); set(buf, x, 12, g); }
+      set(buf, 8, 11, bright); set(buf, 9, 11, bright); set(buf, 9, 12, bright);
     }
   } else if (r.eye === 'single') {
-    // one big central eye: glow field, bright pupil ring, white-hot core
-    rect(buf, 7, 7, 10, 10, g);
-    rect(buf, 8, 8, 9, 9, bright);
-    set(buf, 9, 9, [255, 255, 255]);
+    // one big central eye (5px field): glow ring, bright pupil, white-hot core
+    rect(buf, 9, 10, 14, 15, g);
+    rect(buf, 10, 11, 13, 14, bright);
+    set(buf, 11, 12, [255, 255, 255]); set(buf, 12, 12, [255, 255, 255]);
     const gl = [clamp(g[0] * 1.15), clamp(g[1] * 1.15), clamp(g[2] * 1.15)] as RGB;
-    set(buf, 7, 7, gl); set(buf, 10, 7, gl); set(buf, 7, 10, gl); set(buf, 10, 10, gl);
+    for (const [x, y] of [[9, 10], [14, 10], [9, 15], [14, 15]] as const) set(buf, x, y, gl);
   } else if (r.eye === 'gem') {
     // Vision: a faceted diamond gem glowing on the forehead, calm eyes below
-    set(buf, 8, 5, bright); set(buf, 9, 5, bright);
-    rect(buf, 7, 6, 10, 7, g);
-    set(buf, 8, 8, g); set(buf, 9, 8, g);
+    set(buf, 11, 8, bright); set(buf, 12, 8, bright);
+    rect(buf, 10, 9, 13, 10, g);
+    set(buf, 11, 11, g); set(buf, 12, 11, g);
     // facet highlight: one light pixel + one dark pixel across the gem
-    set(buf, 8, 6, [255, 250, 255]);
-    set(buf, 9, 7, [clamp(g[0] * 0.5), clamp(g[1] * 0.5), clamp(g[2] * 0.5)]);
-    for (const cx of [7, 10]) { set(buf, cx, 10, g); set(buf, cx + (cx === 7 ? 1 : -1), 10, g); }
+    set(buf, 11, 9, [255, 250, 255]);
+    set(buf, 12, 10, [clamp(g[0] * 0.5), clamp(g[1] * 0.5), clamp(g[2] * 0.5)]);
+    for (const cx of [9, 14]) { set(buf, cx, 14, g); set(buf, cx + (cx === 9 ? 1 : -1), 14, g); }
   }
 
   // mouth
   if (r.eye === 'round') {
-    // friendly smile arc: corners high, middle low
-    set(buf, 6, 10, g); set(buf, 11, 10, g);
-    for (let x = 7; x <= 10; x++) set(buf, x, 11, g);
-  } else if (r.eye === 'visor') { for (let x = 7; x <= 10; x++) set(buf, x, 11, [64, 58, 84]); }
-  else if (r.eye === 'gem') { set(buf, 8, 12, g); set(buf, 9, 12, g); set(buf, 7, 12, g); set(buf, 10, 12, g); }
-  else { rect(buf, 7, 11, 10, 11, [64, 58, 84]); set(buf, 8, 11, g); set(buf, 10, 11, g); }
+    // friendly smile arc: corners high, middle low (2px band)
+    set(buf, 8, 17, g); set(buf, 9, 17, g); set(buf, 14, 17, g); set(buf, 15, 17, g);
+    for (let x = 10; x <= 13; x++) set(buf, x, 18, g);
+  } else if (r.eye === 'visor') { for (let x = 9; x <= 14; x++) set(buf, x, 17, [64, 58, 84]); }
+  else if (r.eye === 'gem') { set(buf, 10, 18, g); set(buf, 11, 18, g); set(buf, 13, 18, g); set(buf, 14, 18, g); }
+  else { rect(buf, 9, 17, 14, 17, [64, 58, 84]); set(buf, 10, 17, g); set(buf, 13, 17, g); }
 }
 
-/** Antenna / mast on the crown. */
+/** Antenna / mast on the crown (24px canvas). */
 function drawAntenna(buf: Buf, r: Recipe): void {
   const [hi, base] = shades(r.accent);
   const g = r.glow;
   if (r.antenna === 'single') {
-    set(buf, 8, 3, base); set(buf, 9, 3, base);
-    set(buf, 8, 2, base); set(buf, 9, 2, base);
-    set(buf, 8, 1, g); set(buf, 9, 1, g); set(buf, 9, 0, g); set(buf, 8, 0, g);
-    set(buf, 9, 1, [clamp(g[0] * 1.3), clamp(g[1] * 1.3), clamp(g[2] * 1.3)]);
+    set(buf, 11, 4, base); set(buf, 12, 4, base);
+    set(buf, 11, 3, base); set(buf, 12, 3, base);
+    set(buf, 11, 2, g); set(buf, 12, 2, g); set(buf, 11, 1, g); set(buf, 12, 1, g);
+    set(buf, 12, 1, [clamp(g[0] * 1.3), clamp(g[1] * 1.3), clamp(g[2] * 1.3)]);
   } else if (r.antenna === 'dual') {
-    for (const ax of [6, 11]) {
-      set(buf, ax, 3, base); set(buf, ax, 2, base); set(buf, ax, 1, g);
+    for (const ax of [8, 15]) {
+      set(buf, ax, 4, base); set(buf, ax, 3, base); set(buf, ax, 2, base); set(buf, ax, 1, g);
     }
-    set(buf, 6, 1, [clamp(g[0] * 1.3), clamp(g[1] * 1.3), clamp(g[2] * 1.3)]);
+    set(buf, 8, 1, [clamp(g[0] * 1.3), clamp(g[1] * 1.3), clamp(g[2] * 1.3)]);
   } else if (r.antenna === 'mast') {
-    rect(buf, 8, 0, 9, 4, base);
-    set(buf, 8, 0, hi); set(buf, 9, 0, hi);
-    set(buf, 7, 1, g); set(buf, 10, 1, g);
+    rect(buf, 11, 0, 12, 5, base);
+    set(buf, 11, 0, hi); set(buf, 12, 0, hi);
+    set(buf, 10, 1, g); set(buf, 13, 1, g);
+    set(buf, 10, 3, g); set(buf, 13, 3, g);
   }
 }
 
@@ -265,74 +279,79 @@ function drawTorso(buf: Buf, r: Recipe, topY: number, bottomY: number): void {
   const wide = r.heavy ? 1 : 2;
   if (r.bigHead) {
     // MODOK: no shoulders — a neck stem + tiny vented bib under the giant head
-    rect(buf, 7, 19, 10, 21, sh);        // neck stem
-    rect(buf, 5, 22, 12, bottomY, base); // bib
-    for (let y = 22; y <= bottomY; y++) { set(buf, 5, y, sh); set(buf, 12, y, sh); }
-    set(buf, 6, 22, hi); set(buf, 7, 22, hi);   // bib catch-light (key side)
-    set(buf, 11, bottomY, core); set(buf, 10, bottomY, core);
-    // grid vents with a glow core
+    rect(buf, 9, 28, 14, 30, sh);         // neck stem
+    rect(buf, 6, 31, 17, bottomY, base);  // bib
+    for (let y = 31; y <= bottomY; y++) { set(buf, 6, y, sh); set(buf, 17, y, sh); }
+    set(buf, 7, 31, hi); set(buf, 8, 31, hi);   // bib catch-light (key side)
+    set(buf, 16, bottomY, core); set(buf, 15, bottomY, core);
+    // grid vents with a glow core (wider vents on the 24px canvas)
     const g = r.glow;
-    for (let y = 23; y <= Math.min(bottomY - 1, 25); y++) {
-      set(buf, 7, y, acc[2]); set(buf, 10, y, acc[2]);
-      set(buf, 8, y, g); set(buf, 9, y, g);
+    for (let y = 32; y <= Math.min(bottomY - 1, 34); y++) {
+      set(buf, 9, y, acc[2]); set(buf, 14, y, acc[2]);
+      set(buf, 10, y, g); set(buf, 11, y, g); set(buf, 12, y, g); set(buf, 13, y, g);
     }
     return;
   }
-  // pauldron blocks: heavy frames get a distinct pad row overlapping the shoulder line
-  rect(buf, 3 + (r.heavy ? 0 : 1), topY, 14 - (r.heavy ? 0 : 1), topY, base);
-  rect(buf, 2 + wide, topY + 1, 15 - wide, topY + 1, base);
-  rect(buf, 1 + wide, topY + 2, 16 - wide, bottomY, base);
+  // shoulders on the 24px canvas: pads 3px tall, torso spans cols 3-20
+  rect(buf, 4 + (r.heavy ? -1 : 0), topY, 19 + (r.heavy ? 1 : 0), topY, base);
+  rect(buf, 2 + wide, topY + 1, 21 - wide, topY + 1, base);
+  rect(buf, 1 + wide, topY + 2, 22 - wide, bottomY, base);
   // shoulder accent pads — key-side pad lit, far pad shadowed (§1)
-  for (const [sx0, sx1] of [[1 + wide, 3 + wide], [12 - wide, 14 - wide]] as const) {
+  for (const [sx0, sx1] of [[1 + wide, 4 + wide], [19 - wide, 22 - wide]] as const) {
     rect(buf, sx0, topY + 1, sx1, topY + 3, acc[1]);
     set(buf, sx0, topY + 1, acc[0]);
   }
-  set(buf, 12 - wide, topY + 3, acc[3]);  // far pad's shadow corner
+  set(buf, 19 - wide, topY + 3, acc[3]);  // far pad's shadow corner
   if (r.heavy) {
-    // VERONICA: +1px pauldrons each side — armor blocks overlapping the shoulder line
-    for (const [px0, px1] of [[1, 3], [14, 16]] as const) {
-      rect(buf, px0, topY + 2, px1, topY + 4, acc[1]);
+    // VERONICA: chunky pauldrons — armor blocks overlapping the shoulder line
+    for (const [px0, px1] of [[1, 4], [19, 22]] as const) {
+      rect(buf, px0, topY + 2, px1, topY + 5, acc[1]);
       set(buf, px0, topY + 2, acc[0]);
-      set(buf, px1, topY + 4, acc[3]);
+      set(buf, px1, topY + 5, acc[3]);
+      // bolt heads on the pauldrons (24px detail budget)
+      set(buf, px0 + 1, topY + 3, acc[3]); set(buf, px1 - 1, topY + 4, acc[3]);
     }
     set(buf, 1, topY + 2, acc[0]);       // lit pauldron specular (§8)
   }
   // key-light column down the left edge; core shadow pooling at the lower-right
-  for (let y = topY + 2; y <= bottomY; y++) { set(buf, 1 + wide, y, hi); set(buf, 16 - wide, y, sh); }
-  for (let x = 9 - wide; x <= 15 - wide; x++) set(buf, x, bottomY, sh);
-  set(buf, 15 - wide, bottomY, core); set(buf, 14 - wide, bottomY, core);
+  for (let y = topY + 2; y <= bottomY; y++) { set(buf, 1 + wide, y, hi); set(buf, 22 - wide, y, sh); }
+  for (let x = 13 - wide; x <= 21 - wide; x++) set(buf, x, bottomY, sh);
+  set(buf, 21 - wide, bottomY, core); set(buf, 20 - wide, bottomY, core);
+  // waist seam where torso meets the hips (24px has room)
+  for (let x = 4 + wide; x <= 19 - wide; x++) set(buf, x, bottomY - 1, sh);
   if (r.sheen) {
     // §4 dither band at the shoulder→chest transition (glossy heroes only)
-    for (let x = 4; x <= 8; x++) set(buf, x, topY + 2, (x % 2 === 0 ? hi : base));
+    for (let x = 4; x <= 10; x++) set(buf, x, topY + 2, (x % 2 === 0 ? hi : base));
     set(buf, 4, topY + 2, rp[0]);         // one specular on the chest plate (§8)
   }
 
-  // chest display
+  // chest display — wider plates, taller readouts on the 24px canvas
   const g = r.glow;
   const bright: RGB = [clamp(g[0] * 1.3), clamp(g[1] * 1.3), clamp(g[2] * 1.3)];
-  const cy = topY + 3;
+  const cy = topY + 4;
   if (r.chest === 'reactor') {
-    // arc-reactor: a glowing triangle-in-circle
-    rect(buf, 7, cy, 10, cy + 3, [22, 20, 34]);
-    rect(buf, 7, cy + 1, 10, cy + 2, g);
-    set(buf, 8, cy + 1, bright); set(buf, 9, cy + 1, bright);
-    set(buf, 8, cy + 2, bright);
-    // outer ring
-    set(buf, 6, cy, acc[1]); set(buf, 11, cy, acc[1]);
-    set(buf, 6, cy + 3, acc[1]); set(buf, 11, cy + 3, acc[1]);
+    // arc-reactor: a glowing triangle-in-circle (5px wide now)
+    rect(buf, 9, cy, 14, cy + 4, [22, 20, 34]);
+    rect(buf, 9, cy + 1, 14, cy + 3, g);
+    set(buf, 10, cy + 1, bright); set(buf, 11, cy + 1, bright); set(buf, 12, cy + 1, bright);
+    set(buf, 10, cy + 2, bright); set(buf, 12, cy + 2, bright);
+    set(buf, 11, cy + 3, bright);
+    // outer ring corners
+    set(buf, 8, cy, acc[1]); set(buf, 15, cy, acc[1]);
+    set(buf, 8, cy + 4, acc[1]); set(buf, 15, cy + 4, acc[1]);
   } else if (r.chest === 'grid') {
-    // vent grid: alternating slats
-    for (let x = 6; x <= 11; x += 2) for (let y = cy; y <= cy + 3; y++) set(buf, x, y, acc[2]);
-    for (let x = 7; x <= 10; x += 2) set(buf, x, cy + 1, acc[1]);
+    // vent grid: alternating slats (wider + taller)
+    for (let x = 8; x <= 15; x += 2) for (let y = cy; y <= cy + 4; y++) set(buf, x, y, acc[2]);
+    for (let x = 9; x <= 14; x += 2) { set(buf, x, cy + 1, acc[1]); set(buf, x, cy + 3, acc[1]); }
   } else if (r.chest === 'panel') {
-    // status panel: a small glow bar readout
-    rect(buf, 6, cy, 11, cy + 2, [22, 20, 34]);
-    for (let x = 7; x <= 10; x++) set(buf, x, cy + 1, g);
-    set(buf, 7, cy + 1, bright);
+    // status panel: a wide glow-bar readout
+    rect(buf, 8, cy, 15, cy + 3, [22, 20, 34]);
+    for (let x = 9; x <= 14; x++) set(buf, x, cy + 1, g);
+    set(buf, 9, cy + 1, bright); set(buf, 10, cy + 2, g);
   }
 }
 
-// ─── bases (scene sprites only, rows 24-31) ────────────────────────────────
+// ─── bases (scene sprites only, rows 36-47 on the 48px canvas) ─────────────
 /** §7 ambient bounce: one row of blue-tinted shadow at an underside — the
  *  floor reflects up. Applied by each base painter at its bottom row. */
 function bounceRow(c: RGB): RGB {
@@ -342,39 +361,46 @@ function bounceRow(c: RGB): RGB {
 function drawLegs(buf: Buf, r: Recipe, phase: number): void {
   const rp = ramp5(r.accent);
   const [, base, sh] = [rp[1], rp[2], rp[3]];
-  // hip block: a pelvis slab rows 24-25 connecting torso to legs cleanly
-  rect(buf, 4, 24, 13, 25, base);
-  for (let x = 5; x <= 12; x++) set(buf, x, 25, sh);
-  set(buf, 4, 25, sh); set(buf, 13, 25, sh);
-  set(buf, 4, 24, rp[1]);               // hip catch-light (key side)
+  // hip block: a pelvis slab rows 36-38 connecting torso to legs cleanly
+  rect(buf, 5, 36, 18, 38, base);
+  for (let x = 6; x <= 17; x++) set(buf, x, 38, sh);
+  set(buf, 5, 38, sh); set(buf, 18, 38, sh);
+  set(buf, 5, 36, rp[1]); set(buf, 6, 36, rp[1]);   // hip catch-light (key side)
   void r;
-  for (const [lx0, lx1] of [[5, 7], [10, 12]] as const) {
-    rect(buf, lx0, 25, lx1, 30, base);
-    for (let y = 25; y <= 30; y++) set(buf, lx1, y, sh);
-    set(buf, lx0, 25, rp[1]);           // lit leg edge (key side)
-    // knee joint
-    set(buf, lx0 + 1, 27, sh); set(buf, lx1 - 1, 27, sh);
+  // legs: 3px thighs tapering to 2px shins, knee piston at mid-leg
+  for (const [lx0, lx1] of [[6, 8], [15, 17]] as const) {
+    rect(buf, lx0, 38, lx1, 43, base);               // thigh (3px wide)
+    for (let y = 38; y <= 43; y++) set(buf, lx1, y, sh);
+    set(buf, lx0, 38, rp[1]);                       // lit leg edge (key side)
+    // knee joint + piston (24px detail budget)
+    set(buf, lx0, 41, sh); set(buf, lx1 - 1, 41, sh);
+    set(buf, lx0 + 1, 41, rp[0]);
+    rect(buf, lx0 + 1, 42, lx1 - 1, 45, base);      // shin (tapered)
+    for (let y = 42; y <= 45; y++) set(buf, lx1 - 1, y, sh);
   }
   // feet — lift one per walk phase; the grounded foot gets the §7 bounce
   const leftLow = phase !== 1, rightLow = phase !== 2;
   const shoe: RGB = [44, 40, 48];
   const shoeBounce = bounceRow(shoe);
-  rect(buf, 5, leftLow ? 31 : 30, 7, leftLow ? 31 : 30, leftLow ? shoeBounce : shoe);
-  rect(buf, 10, rightLow ? 31 : 30, 12, rightLow ? 31 : 30, rightLow ? shoeBounce : shoe);
+  const fy = (low: boolean) => (low ? 47 : 46);
+  rect(buf, 5, fy(leftLow), 9, fy(leftLow), leftLow ? shoeBounce : shoe);
+  rect(buf, 14, fy(rightLow), 18, fy(rightLow), rightLow ? shoeBounce : shoe);
   // lifted foot keeps a plain shoe + a hint of shadow under it
-  if (!leftLow) set(buf, 6, 31, shoe, 120);
-  if (!rightLow) set(buf, 11, 31, shoe, 120);
+  if (!leftLow) { for (let x = 6; x <= 8; x++) set(buf, x, 47, shoe, 120); }
+  if (!rightLow) { for (let x = 15; x <= 17; x++) set(buf, x, 47, shoe, 120); }
 }
 
 function drawTreads(buf: Buf, r: Recipe): void {
   const rp = ramp5(r.accent);
   const [hi, base, sh] = [rp[1], rp[2], rp[3]];
-  const x0 = r.heavy ? 1 : 3, x1 = 17 - x0;
-  rect(buf, x0, 26, x1, 30, base);
-  for (let x = x0; x <= x1; x += 2) set(buf, x, 28, sh); // tread notches
-  rect(buf, x0 + 1, 26, x1 - 1, 26, hi);
-  for (let x = x0 + 1; x <= x1 - 1; x++) set(buf, x, 30, bounceRow(base));  // §7 bounce row
-  set(buf, x0 + 1, 26, rp[0]);          // tread specular (§8 — gloss rolls)
+  const x0 = r.heavy ? 1 : 3, x1 = 23 - x0;
+  rect(buf, x0, 38, x1, 45, base);
+  for (let x = x0; x <= x1; x += 2) { set(buf, x, 41, sh); set(buf, x, 43, sh); }  // tread notches
+  rect(buf, x0 + 1, 38, x1 - 1, 38, hi);            // top rim (key side)
+  for (let x = x0 + 1; x <= x1 - 1; x++) set(buf, x, 45, bounceRow(base));  // §7 bounce row
+  set(buf, x0 + 1, 38, rp[0]);                     // tread specular (§8 — gloss rolls)
+  // side vents above the treads (24px detail budget)
+  for (const vx of [x0 + 3, x0 + 8, x0 + 13]) { set(buf, vx, 39, sh); set(buf, vx + 1, 39, hi); }
 }
 
 function drawHover(buf: Buf, r: Recipe, phase: number): void {
@@ -384,30 +410,34 @@ function drawHover(buf: Buf, r: Recipe, phase: number): void {
   const [, base, sh] = [rp[1], rp[2], rp[3]];
   const g = r.glow;
   if (r.bigHead) {
-    // MODOK's float throne: a tiny bracket seat under the giant head
-    rect(buf, 6, 25 - bob, 11, 26 - bob, base);
-    rect(buf, 5, 27 - bob, 12, 27 - bob, base);
-    set(buf, 4, 26 - bob, base); set(buf, 13, 26 - bob, base); // armrest stubs
-    for (let x = 5; x <= 12; x++) set(buf, x, 27 - bob, sh);
-    set(buf, 6, 25 - bob, rp[1]);       // throne catch-light
-    set(buf, 7, 26 - bob, g); set(buf, 10, 26 - bob, g); // throne glow dots
+    // MODOK's float throne: a bracket seat under the giant head (24px)
+    rect(buf, 7, 34 - bob, 16, 36 - bob, base);
+    rect(buf, 5, 37 - bob, 18, 37 - bob, base);
+    set(buf, 4, 36 - bob, base); set(buf, 19, 36 - bob, base);  // armrest stubs
+    for (let x = 6; x <= 17; x++) set(buf, x, 37 - bob, sh);
+    set(buf, 7, 34 - bob, rp[1]);       // throne catch-light
+    set(buf, 9, 36 - bob, g); set(buf, 14, 36 - bob, g);       // throne glow dots
   } else {
     // float throne: wide at the waist, tapering to a narrower bottom row
-    rect(buf, 4, 25 - bob, 13, 27 - bob, base);
-    rect(buf, 5, 28 - bob, 12, 28 - bob, base);
-    for (let x = 5; x <= 12; x++) set(buf, x, 28 - bob, bounceRow(base));   // §7 bounce
-    for (let x = 4; x <= 7; x++) set(buf, x, 25 - bob, rp[1]); // key-side rim
+    rect(buf, 4, 36 - bob, 19, 39 - bob, base);
+    rect(buf, 6, 40 - bob, 17, 41 - bob, base);
+    for (let x = 6; x <= 17; x++) set(buf, x, 41 - bob, bounceRow(base));   // §7 bounce
+    for (let x = 4; x <= 9; x++) set(buf, x, 36 - bob, rp[1]);  // key-side rim
+    // skirt vents (24px detail budget)
+    for (const vx of [8, 12, 16]) { set(buf, vx, 39 - bob, sh); set(buf, vx + 1, 39 - bob, sh); }
   }
-  // repulsor glow
-  for (let x = 6; x <= 11; x++) set(buf, x, 30 + bob, g, 170);
-  set(buf, 7, 30 + bob, g, 220); set(buf, 8, 30 + bob, g, 220); set(buf, 9, 30 + bob, g, 220); set(buf, 10, 30 + bob, g, 220);
+  // repulsor glow — wider, 2 rows of falloff
+  for (let x = 7; x <= 16; x++) set(buf, x, 43 + bob, g, 150);
+  for (let x = 9; x <= 14; x++) set(buf, x, 44 + bob, g, 220);
 }
 
 // ─── compose ─────────────────────────────────────────────────────────────────
+// 24px layout: head rows 5-24, neck 25-27, torso topY..bottomY per canvas,
+// bases rows 36-47 on the 48-tall scene sprite.
 function compose(r: Recipe): Buf {
   CUR_W = PORTRAIT_W; CUR_H = PORTRAIT_H;
   const buf = new Uint8ClampedArray(PORTRAIT_W * PORTRAIT_H * 4);
-  drawTorso(buf, r, 18, 27);
+  drawTorso(buf, r, 28, 41);
   drawShellHead(buf, r);
   drawFaceScreen(buf, r);
   drawAntenna(buf, r);
@@ -418,7 +448,7 @@ function compose(r: Recipe): Buf {
 function composeScene(r: Recipe, phase: number, back: boolean): Buf {
   CUR_W = SCENE_W; CUR_H = SCENE_H;
   const buf = new Uint8ClampedArray(SCENE_W * SCENE_H * 4);
-  drawTorso(buf, r, 18, 24);
+  drawTorso(buf, r, 28, 37);
   if (r.base === 'legs') drawLegs(buf, r, phase);
   else if (r.base === 'treads') drawTreads(buf, r);
   else drawHover(buf, r, phase);
@@ -432,36 +462,40 @@ function composeScene(r: Recipe, phase: number, back: boolean): Buf {
   return buf;
 }
 
-/** Back of the head: plain shell + antenna (no screen). */
+/** Back of the head: plain shell + antenna (no screen) — 24px canvas. */
 function drawHeadBack(buf: Buf, r: Recipe): void {
-  const [hi, base, sh] = shades(r.shell);
+  const rp = ramp5(r.shell);
+  const [hi, base, sh] = [rp[1], rp[2], rp[3]];
   if (r.bigHead) {
     // MODOK from behind: the whole egg, maintenance hatch, no face screen
-    for (let y = 2; y <= 19; y++) {
-      let x0 = 3, x1 = 14;
+    for (let y = 3; y <= 26; y++) {
+      let x0 = 6, x1 = 17;
       for (const [ey, a, b] of BIG_EDGE) if (ey === y) { x0 = a; x1 = b; }
       for (let x = x0; x <= x1; x++) set(buf, x, y, base);
     }
-    rect(buf, 6, 9, 11, 14, sh); // hatch panel
-    for (let y = 6; y <= 16; y++) set(buf, 8, y, sh); // seam
-    for (let x = 7; x <= 10; x++) set(buf, x, 3, hi);
-    for (const ex of [2, 15]) { set(buf, ex, 10, base); set(buf, ex, 11, base); set(buf, ex, 12, sh); }
+    rect(buf, 8, 12, 15, 19, sh);   // hatch panel
+    for (let y = 9; y <= 22; y++) set(buf, 11, y, sh);  // seam
+    for (let x = 9; x <= 14; x++) set(buf, x, 4, hi);   // crown catch-light
+    for (const [x, y] of [[7, 5], [8, 5], [7, 6], [7, 7], [6, 8], [6, 9], [6, 10]] as const) set(buf, x, y, hi);
+    for (const ex of [3, 20]) { set(buf, ex, 14, base); set(buf, ex + 1, 14, base); set(buf, ex, 15, sh); set(buf, ex + 1, 15, sh); }
     return;
   }
   const rows: [number, number, number][] = [
-    [4, 6, 11], [5, 5, 12], [6, 4, 13], [7, 4, 13], [8, 4, 13], [9, 4, 13],
-    [10, 4, 13], [11, 4, 13], [12, 4, 13], [13, 4, 13], [14, 4, 13], [15, 5, 12], [16, 6, 11],
+    [5, 8, 15], [6, 7, 16], [7, 6, 17], [8, 6, 17], [9, 6, 17], [10, 6, 17],
+    [11, 6, 17], [12, 6, 17], [13, 6, 17], [14, 6, 17], [15, 6, 17], [16, 6, 17],
+    [17, 6, 17], [18, 6, 17], [19, 6, 17], [20, 6, 17], [21, 6, 17], [22, 7, 16], [23, 8, 15], [24, 9, 14],
   ];
   for (const [y, a, b] of rows) rect(buf, a, y, b, y, base);
   // maintenance hatch: a darker panel + seam down the middle
-  rect(buf, 6, 8, 11, 12, sh);
-  for (let y = 6; y <= 14; y++) set(buf, 8, y, sh);
-  for (let x = 7; x <= 10; x++) set(buf, x, 4, hi);
-  rect(buf, 7, 17, 10, 18, sh);
+  rect(buf, 8, 11, 15, 17, sh);
+  for (let y = 9; y <= 20; y++) set(buf, 11, y, sh);
+  for (let x = 9; x <= 14; x++) set(buf, x, 5, hi);
+  for (const [x, y] of [[8, 6], [7, 7], [7, 8], [7, 9]] as const) set(buf, x, y, hi);  // key-side rim
+  rect(buf, 10, 25, 13, 27, sh);   // neck
   // antenna seen from behind
-  if (r.antenna === 'single') { set(buf, 8, 2, base); set(buf, 9, 2, base); set(buf, 9, 1, r.glow); }
-  else if (r.antenna === 'dual') { set(buf, 6, 2, base); set(buf, 11, 2, base); set(buf, 6, 1, r.glow); }
-  else if (r.antenna === 'mast') { rect(buf, 8, 0, 9, 3, base); set(buf, 8, 0, hi); }
+  if (r.antenna === 'single') { set(buf, 11, 4, base); set(buf, 12, 4, base); set(buf, 12, 1, r.glow); }
+  else if (r.antenna === 'dual') { set(buf, 8, 4, base); set(buf, 15, 4, base); set(buf, 8, 1, r.glow); }
+  else if (r.antenna === 'mast') { rect(buf, 11, 0, 12, 3, base); set(buf, 11, 0, hi); }
 }
 
 // ─── outline / hologram passes ──────────────────────────────────────────────
@@ -516,7 +550,7 @@ function holoPass(buf: Buf): void {
       const i = (y * CUR_W + x) * 4;
       if (buf[i + 3] === 0) continue;
       buf[i + 3] = Math.min(buf[i + 3], 205);
-      if (y >= 6 && y <= 13 && (y - 6) % 3 === 2) {
+      if (y >= 7 && y <= 20 && (y - 7) % 3 === 2) {
         buf[i] = Math.round(buf[i] * 0.5);
         buf[i + 1] = Math.round(buf[i + 1] * 0.5);
         buf[i + 2] = Math.round(buf[i + 2] * 0.5);
