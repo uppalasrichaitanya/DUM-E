@@ -21,6 +21,14 @@ orchestrator and visualized as robots at work on a shared lab floor.
 </p>
 
 <p>
+  <img src="./docs/screenshots/dum-e-floor.png" alt="DUM-E — the Stark Workshop floor" width="820">
+</p>
+
+<p><sub>The Stark Workshop: god's enclosed workshop, the central holo-table, the server-rack
+wall with observation windows, and the charging-bay room — rack LEDs blink, the
+charger steams, robots bob and blink. Live capture, dev build.</sub></p>
+
+<p>
   <img alt="Status: internal tool" src="https://img.shields.io/badge/status-internal%20tool-266FD6.svg?style=flat-square&labelColor=04101E">
   <img alt="Platform: Windows first" src="https://img.shields.io/badge/platform-Windows%20first-266FD6.svg?style=flat-square&labelColor=04101E">
 </p>
