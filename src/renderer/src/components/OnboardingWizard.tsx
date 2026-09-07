@@ -413,8 +413,18 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                       <label key={p.id} style={{
                         display: 'flex', alignItems: 'center', gap: 10,
                         padding: '8px 10px',
-                        background: sel ? 'var(--cth-mint-light)' : 'var(--cth-paper-100)',
-                        boxShadow: `inset 0 0 0 ${sel ? 2 : 1}px ${sel ? 'var(--cth-mint)' : 'var(--cth-ink-300)'}`,
+                        // Selectable SNES button (Art Bible §5): the picked
+                        // engine reads as a RAISED key — bevel out, arc-reactor
+                        // accent (the §6 selected-state vocabulary) as a tint
+                        // mixed from the token, so both themes derive from one
+                        // source. Unpicked rows keep quiet hairline tiles. The
+                        // old 2px mint ring read as a chip, not a key.
+                        background: sel
+                          ? 'color-mix(in srgb, var(--cth-arc) 18%, var(--cth-paper-100))'
+                          : 'var(--cth-paper-100)',
+                        boxShadow: sel
+                          ? 'var(--cth-panel-bevel)'
+                          : 'inset 0 0 0 1px var(--cth-ink-300)',
                         cursor: 'pointer'
                       }}>
                         <input
@@ -428,7 +438,10 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                             // dropdown below always shows a valid model for the chosen engine.
                             setGodModel(p.recommendedOrchestratorModel);
                           }}
-                          style={{ width: 16, height: 16, flexShrink: 0 }}
+                          // The native radio follows the same arc vocabulary as
+                          // the card it selects — the UA's default blue would
+                          // sit off-palette next to the arc-tinted key.
+                          style={{ width: 16, height: 16, flexShrink: 0, accentColor: 'var(--cth-arc)' }}
                         />
                         <span style={{
                           width: 22, height: 22, flexShrink: 0, display: 'flex',
@@ -577,7 +590,9 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                     type="checkbox"
                     checked={autoMode}
                     onChange={(e) => setAutoMode(e.target.checked)}
-                    style={{ width: 18, height: 18, flexShrink: 0 }}
+                    // Arc accent on the native checkbox — same vocabulary as
+                    // the radio picks (the UA default blue is off-palette).
+                    style={{ width: 18, height: 18, flexShrink: 0, accentColor: 'var(--cth-arc)' }}
                   />
                   <div>
                     <div style={{ fontFamily: 'var(--cth-font-display)', fontSize: 10, lineHeight: '14px' }}>
@@ -746,8 +761,15 @@ function PersonaCard({ icon, title, desc, selected, onClick }: {
       style={{
         textAlign: 'left', cursor: 'pointer', border: 'none',
         padding: 12, display: 'flex', flexDirection: 'column', gap: 6,
-        background: selected ? 'var(--cth-mint-light)' : 'var(--cth-paper-100)',
-        boxShadow: `inset 0 0 0 ${selected ? 2 : 1}px ${selected ? 'var(--cth-mint)' : 'var(--cth-ink-300)'}`
+        // Same selectable-key recipe as the engine rows above: bevel + arc
+        // tint when chosen (§5/§6), hairline tile otherwise. The two card
+        // families share one "picked" language across the whole wizard.
+        background: selected
+          ? 'color-mix(in srgb, var(--cth-arc) 18%, var(--cth-paper-100))'
+          : 'var(--cth-paper-100)',
+        boxShadow: selected
+          ? 'var(--cth-panel-bevel)'
+          : 'inset 0 0 0 1px var(--cth-ink-300)'
       }}
     >
       <span style={{
@@ -786,7 +808,8 @@ function ToggleRow({ icon, label, desc, on, tint, edge, onChange }: {
         type="checkbox"
         checked={on}
         onChange={(e) => onChange(e.target.checked)}
-        style={{ width: 18, height: 18, flexShrink: 0, marginTop: 5 }}
+        // Arc accent on the native checkbox (matches the wizard's picks).
+        style={{ width: 18, height: 18, flexShrink: 0, marginTop: 5, accentColor: 'var(--cth-arc)' }}
       />
       <span style={{
         width: 28, height: 28, flexShrink: 0, display: 'flex',
@@ -811,13 +834,28 @@ function Dots({ step }: { step: Step }) {
   const order: Step[] = ['persona', 'welcome', 'home', 'orchestrator', 'repos', 'permissions'];
   return (
     <div style={{ display: 'flex', gap: 4 }}>
-      {order.map((s) => (
-        <span key={s} style={{
-          width: 8, height: 8,
-          background: s === step ? 'var(--cth-ink-900)' : 'var(--cth-cream-300)',
-          boxShadow: 'inset 0 0 0 1px var(--cth-ink-300)'
-        }} />
-      ))}
+      {order.map((s) => {
+        // Accent vocabulary (§6): the CURRENT step carries the arc-reactor
+        // blue, steps already behind us are settled ink, the road ahead stays
+        // quiet cream with a hairline frame. One accent pixel-surface per
+        // footer — no gold, no rainbow.
+        const idx = order.indexOf(s);
+        const cur = order.indexOf(step);
+        const done = idx < cur;
+        return (
+          <span key={s} style={{
+            width: 8, height: 8,
+            background: s === step
+              ? 'var(--cth-arc)'
+              : done
+                ? 'var(--cth-ink-900)'
+                : 'var(--cth-cream-300)',
+            boxShadow: s === step
+              ? 'inset 0 0 0 1px var(--cth-arc-deep)'
+              : 'inset 0 0 0 1px var(--cth-ink-300)'
+          }} />
+        );
+      })}
     </div>
   );
 }

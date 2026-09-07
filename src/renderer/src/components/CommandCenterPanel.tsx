@@ -272,14 +272,19 @@ export function CommandCenterPanel({ agent, fullscreen = false }: { agent: Agent
               flex: '1 0 auto',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
               padding: '4px 8px 3px', border: 'none', cursor: 'pointer',
-              background: tab === tabDef.key ? `var(--cth-${agent.accent})` : 'var(--cth-cream-200)',
-              // The selected tab is filled with the agent's accent, which is a
-              // LIGHT colour in both themes. ink-900 flips to near-white in dark
-              // mode, so the active tab's label was pale-on-pale — the one tab
-              // you most need to read. On-accent text is dark in both themes.
-              color: tab === tabDef.key ? 'var(--cth-on-accent)' : 'var(--cth-ink-900)',
+              // The picked tab reads as a RAISED key (Art Bible §5/§6): bevel
+              // out + the arc-reactor selected tint — the same "picked"
+              // language the onboarding cards use, so one vocabulary spans
+              // the whole app. The agent's accent still lives in the icon +
+              // the panel's header; the tab fill itself is brand-neutral so
+              // eleven agents don't paint eleven different tab rainbows.
+              background: tab === tabDef.key
+                ? 'color-mix(in srgb, var(--cth-arc) 18%, var(--cth-cream-100))'
+                : 'var(--cth-cream-200)',
+              // ink-900 stays readable on both the arc tint and plain cream.
+              color: 'var(--cth-ink-900)',
               boxShadow: tab === tabDef.key
-                ? 'inset 0 0 0 1px var(--cth-ink-300)'
+                ? 'var(--cth-panel-bevel)'
                 : 'inset 0 0 0 1px var(--cth-ink-100)',
               fontFamily: 'var(--cth-font-ui)', fontSize: 13
             }}

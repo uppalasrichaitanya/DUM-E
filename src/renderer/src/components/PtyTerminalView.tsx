@@ -24,6 +24,9 @@ const MAX_FONT_SIZE = MAX_TERMINAL_FONT_SIZE;
 // chrome, terminal, and (via config.terminalTheme) each agent's TUI palette.
 type PtyTheme = 'light' | 'dark';
 
+// Zoom buttons live INSIDE the dark chrome strip, so they follow its palette:
+// translucent-light keys on the lab strip, with the same hard-shadow language
+// as every other button (§5 — light bevel up-left, dark down-right).
 const zoomBtnStyle: CSSProperties = {
   width: 18,
   height: 18,
@@ -33,9 +36,9 @@ const zoomBtnStyle: CSSProperties = {
   fontFamily: 'var(--cth-font-ui)',
   fontSize: 12,
   lineHeight: 1,
-  color: 'var(--cth-ink-700)',
-  background: 'var(--cth-paper-100)',
-  border: '1px solid var(--cth-ink-300)',
+  color: 'var(--cth-ink-100)',
+  background: 'color-mix(in srgb, var(--cth-cream-50) 12%, var(--cth-lab-bg))',
+  border: '1px solid var(--cth-ink-700)',
   cursor: 'pointer',
   padding: 0
 };
@@ -360,21 +363,23 @@ export function PtyTerminalView({ ptyId, onStreamData, onUserPrompt, onToggleFul
       display: 'flex',
       flexDirection: 'column'
     }}>
+      {/* Chrome strip (Art Bible §5): the terminal reads as a machine's
+          monitor — a dark lab strip above a recessed well. The strip uses
+          the --cth-lab-bg family with ink-100 text so both themes render it
+          as "hardware", distinct from the cream app chrome around it. */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 6,
-        fontFamily: 'var(--cth-font-ui)',
+        fontFamily: 'var(--cth-font-mono)',
         fontSize: 12,
-        color: 'var(--cth-ink-500)',
-        borderBottom: '1px dashed var(--cth-ink-300)',
-        paddingBottom: 4,
-        marginBottom: 4,
-        paddingLeft: embedded ? 8 : 0,
-        paddingRight: embedded ? 8 : 0,
-        paddingTop: embedded ? 6 : 0
+        color: 'var(--cth-ink-100)',
+        background: 'var(--cth-lab-bg)',
+        borderBottom: '1px solid var(--cth-ink-700)',
+        padding: embedded ? '6px 8px' : '3px 8px',
+        boxShadow: 'var(--cth-panel-bevel)'
       }}>
         <span style={{
-          width: 8, height: 8, background: 'var(--cth-mint)',
-          boxShadow: 'inset 0 0 0 1px var(--cth-ink-300)',
+          width: 8, height: 8, background: 'var(--cth-arc-glow)',
+          boxShadow: 'inset 0 0 0 1px var(--cth-ink-700)',
           animation: 'cth-pulse 1200ms steps(2, end) infinite'
         }} />
         live · pty {ptyId}
@@ -410,9 +415,15 @@ export function PtyTerminalView({ ptyId, onStreamData, onUserPrompt, onToggleFul
           )}
         </div>
       </div>
+      {/* The xterm well (§5 inverted): the screen surface sits recessed below
+          the strip — dark top-left lip, light bottom-right — so the terminal
+          reads as a monitor inset into the frame, not a page on top of it. */}
       <div ref={hostRef} onDragOver={onDragOver} onDrop={onDrop} style={{
         flex: 1, minHeight: 0,
-        padding: embedded ? '0 8px 8px' : 0
+        padding: embedded ? '0 8px 8px' : 0,
+        boxShadow: 'var(--cth-panel-bevel-inset)',
+        margin: embedded ? 0 : '0 0 4px',
+        background: 'var(--cth-paper-100)'
       }} />
     </div>
   );
