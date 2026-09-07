@@ -6,8 +6,7 @@
 
 ### The arm that runs the lab — an agent hub for our team
 
-An internal, Windows-first multi-agent harness built on
-[Munder Difflin](https://github.com/chaitanyagiri/munder-difflin) (MIT). It spawns
+An internal, Windows-first multi-agent harness. It spawns
 the coding-agent CLIs we actually use, gives each agent memory and a mailbox, and
 puts **DUM-E** — the orchestrator — in charge of the floor while everyone works.
 
@@ -152,8 +151,7 @@ Key docs: [SPEC.md](./SPEC.md), [HIVE.md](./HIVE.md), [DESIGN.md](./DESIGN.md),
 
 ## Upstream
 
-This is a fork of [Munder Difflin](https://github.com/chaitanyagiri/munder-difflin)
-(MIT), rebranded and reshaped for our team:
+DUM-E — built for our team:
 
 - engine roster trimmed to **qwen / claude / codex / opencode / custom**, with
   qwen-first defaults;

@@ -244,7 +244,7 @@ test('a missing exposed directory is repaired on the next spawn', (t) => {
   assert.equal(fs.statSync(sessions).isDirectory(), true, 'the stale link still has no writable target');
 });
 
-test('an unsafe agent id cannot escape the Munder scan namespace', (t) => {
+test('an unsafe agent id cannot escape the scan namespace', (t) => {
   const { home, harness } = isolatedHomes(t);
   const hive = new HiveManager(() => harness);
   hive.ensureHive();
@@ -260,14 +260,14 @@ test('an unsafe agent id cannot escape the Munder scan namespace', (t) => {
   assert.equal(fs.existsSync(path.join(home, '.codex', 'sessions', 'dum-e', 'outside')), false);
 });
 
-test('reset cleanup removes only exposed Munder rollouts', (t) => {
+test('reset cleanup removes only exposed rollouts', (t) => {
   const { home, harness } = isolatedHomes(t);
   const hive = new HiveManager(() => harness);
   hive.ensureHive();
   const agentDir = path.join(harness, 'hive', 'agents', 'a1');
   const isolated = path.join(agentDir, '.codex', 'sessions');
   fs.mkdirSync(isolated, { recursive: true });
-  fs.writeFileSync(path.join(isolated, 'rollout-munder.jsonl'), 'munder\n', 'utf8');
+  fs.writeFileSync(path.join(isolated, 'rollout-dum-e.jsonl'), 'dum-e\n', 'utf8');
   const personal = path.join(home, '.codex', 'sessions', '2026', '08', '21', 'rollout-personal.jsonl');
   fs.mkdirSync(path.dirname(personal), { recursive: true });
   fs.writeFileSync(personal, 'personal\n', 'utf8');
@@ -276,7 +276,7 @@ test('reset cleanup removes only exposed Munder rollouts', (t) => {
 
   hive.removeExposedCodexData();
 
-  assert.equal(fs.existsSync(exposed), false, 'reset left Munder rollout data behind');
+  assert.equal(fs.existsSync(exposed), false, 'reset left rollout data behind');
   assert.equal(fs.readFileSync(personal, 'utf8'), 'personal\n', 'reset touched a personal Codex session');
 });
 // (The former "Gemini gets isolated lifecycle settings and an interactive

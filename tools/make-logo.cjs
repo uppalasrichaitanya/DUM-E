@@ -4,7 +4,7 @@
  *
  * THE SVG IS THE SOURCE OF TRUTH. Every raster is generated from the same
  * geometry, never traced back from a PNG. Adapted from the upstream mark
- * pipeline (tools/make-logo.cjs in Munder Difflin): same run-merged <rect>
+ * pipeline: same run-merged <rect>
  * approach, same rasteriser — new sprite, new palette.
  *
  * TWO-TIER ICON SYSTEM (real icon sets do this — one pose cannot read at

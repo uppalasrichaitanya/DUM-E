@@ -36,8 +36,6 @@ with `node tools/preview-logo.cjs`.
 own license file there before redistributing.
 
 ## History note
-The upstream project (Munder Difflin) shipped LimeZu "Modern Interiors"
-tilesets; later versions purchased the Complete Version licence (credits
-required), and this fork's first asset commit replaced them anyway with
-generated lab tilesets of identical grid layout. No LimeZu files are present
-in this fork. If a copy of those files resurfaces, do not commit them.
+This project ships no third-party tilesets: the lab floor is generated
+in-repo (see the generator tools). Any tile art you add must be original or
+separately licensed, with attribution recorded here.

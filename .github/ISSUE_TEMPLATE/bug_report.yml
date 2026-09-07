@@ -66,8 +66,8 @@ body:
   - type: input
     id: app-version
     attributes:
-      label: Munder Difflin version
-      description: Settings → the version is on the hero card. Or `Munder Difflin → About`.
+      label: DUM-E version
+      description: Settings → General shows the running version.
       placeholder: e.g. 0.4.5
     validations:
       required: true

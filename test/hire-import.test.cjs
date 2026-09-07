@@ -12,7 +12,7 @@ const { readHireManifestFiles } = loadTs('src/main/hire.ts');
 const manifest = (name) => ({ spec: 'dum-e/hire@1', name });
 
 test('batch import keeps every valid manifest and reports invalid files independently', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'munder-hire-import-'));
+  const dir = mkdtempSync(join(tmpdir(), 'dum-e-hire-import-'));
   try {
     const jim = join(dir, '01-jim.json');
     const brokenJson = join(dir, '02-broken.json');
