@@ -4,7 +4,15 @@
   "private": true,
   "description": "DUM-E — a Stark-lab themed agent hub for the team: spawn coding agents, give them memory and mailboxes, and let DUM-E run the floor.",
   "main": "out/main/index.js",
-  "author": "DUM-E Team",
+  "author": "Sri Chaitanya Uppala",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/uppalasrichaitanya/DUM-E.git"
+  },
+  "bugs": "https://github.com/uppalasrichaitanya/DUM-E/issues",
+  "homepage": "https://github.com/uppalasrichaitanya/DUM-E#readme",
+  "keywords": ["electron", "ai-agents", "coding-agent", "qwen", "pixi", "agent-hub"],
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build && npm run copy:main-assets",
