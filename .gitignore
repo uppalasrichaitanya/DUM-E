@@ -19,3 +19,6 @@ build/AuthKey_*.p8
 
 # git worktree mounts for hive worker agents — never commit (each is a separate branch checkout)
 .worktrees/
+
+# staging output for the Pages deploy (web/tools/stage-site.cjs) — build artifact
+_site/
