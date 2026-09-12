@@ -302,6 +302,108 @@ export function parseNpmCmdShim(shimPath: string, content: string): NpmShimTarge
   return { interpreter, scriptPath };
 }
 
+/**
+ * Decode a "bundled-node" `.cmd` launcher — a self-contained CLI install that
+ * ships its OWN Node and an entry script, wrapped in a hand-written batch file.
+ * qwen-code's Windows install is exactly this shape (found live during the
+ * first real mission — its agent spawned dead while the floor showed "idle"):
+ *
+ *   @echo off
+ *   setlocal
+ *   set "ROOT=%~dp0.."
+ *   set "QWEN_CODE_LAUNCHER_PATH=%ROOT%\bin\qwen.cmd"
+ *   "%ROOT%\node\node.exe" "%ROOT%\lib\cli-entry.js" %*
+ *   exit /b %ERRORLEVEL%
+ *
+ * parseNpmCmdShim rejects this (rightly — it is NOT an npm shim: `%ROOT%` is a
+ * plain variable, the exec paths are absolute-quoted, not `%dp0%`-relative), so
+ * before this decoder existed such CLIs fell through to the cmd.exe fallback
+ * that truncates the hive protocol at its first newline. The agent then started
+ * identity-less and useless — the exact failure the first mission hit.
+ *
+ * SHAPES HANDLED: any .cmd that (a) defines simple `set "NAME=value"` string
+ * variables (values may reference earlier vars and `%~dp0`), and (b) ends with
+ * a quoted exec line of the form  "<interpreter path>" "<script.js>" %*  with
+ * nothing between the tokens. The interpreter must be node/bun/deno (same
+ * allowlist) and the script must be JS (same test) — resolved against the
+ * launcher's OWN directory for `%~dp0`, never PATH-relative, because a bundled
+ * install must run its bundled interpreter, not whatever node the user has.
+ *
+ * Returns the RESOLVED interpreter path (absolute) rather than a bare name —
+ * unlike the npm shim (whose colocated node is on PATH by construction), the
+ * bundled node lives in a private tree that only the .cmd knows about.
+ * Returns null for any shape not fully understood → cmd.exe fallback.
+ */
+export function parseBundledNodeCmd(shimPath: string, content: string): { interpreterPath: string; scriptPath: string } | null {
+  if (typeof shimPath !== 'string' || typeof content !== 'string') return null;
+  if (!shimPath || !content) return null;
+  if (content.length > 8192 || content.includes('\0')) return null;
+  const dir = win32.dirname(shimPath);
+  if (!dir || dir === '.') return null;
+
+  // 1) Collect `set "NAME=VALUE"` assignments in order (later vars may use
+  //    earlier ones + `%~dp0`). Values are stored RAW; expansion is layered.
+  const vars = new Map<string, string>();
+  for (const m of content.matchAll(/^\s*@?SET\s+"?([A-Za-z_][A-Za-z0-9_]*)=([^"\r\n]*)"?/gim)) {
+    vars.set(m[1].toUpperCase(), m[2]);
+  }
+
+  // 2) The exec line: last line carrying `%*` (same heuristic as the npm shim).
+  const lines = content.split(/\r?\n/);
+  let execLine: string | null = null;
+  for (let i = lines.length - 1; i >= 0; i--) {
+    if (lines[i].includes('%*')) { execLine = lines[i]; break; }
+  }
+  if (!execLine) return null;
+  const head = execLine.slice(0, execLine.lastIndexOf('%*'));
+
+  // 3) Exactly two quoted tokens — the interpreter and the script — with
+  //    NOTHING between them. Anything else (flags, `&` chains, call) → refuse.
+  const quoted = [...head.matchAll(/"([^"]*)"/g)].map((m) => ({
+    text: m[1],
+    start: m.index ?? 0,
+    end: (m.index ?? 0) + m[0].length
+  }));
+  if (quoted.length !== 2) return null;
+  if (head.slice(quoted[0].end, quoted[1].start).trim() !== '') return null;
+  const before = head.slice(0, quoted[0].start).trim().replace(/^@/, '').trim();
+  if (before !== '') return null;   // `call`, `if exist …`, redirects → unknown shape
+
+  /** Expand a token against the launcher's variables: repeatedly substitute
+   *  `%VAR%` (longest-name-first so ROOTDIR never half-matches ROOT) and
+   *  `%~dp0` (the .cmd's own dir, trailing backslash), then normalize. Any
+   *  surviving `%`, empty result, or relative result → refuse. */
+  const expand2 = (raw: string): string | null => {
+    let s = raw;
+    for (let guard = 0; guard < 8; guard++) {
+      const beforeSub = s;
+      s = s.replace(/%~dp0%?/gi, `${dir}\\`);
+      const names = [...vars.keys()].sort((a, b) => b.length - a.length);
+      for (const n of names) s = s.replace(new RegExp(`%${n}%`, 'gi'), vars.get(n) ?? '');
+      if (s === beforeSub) break;
+    }
+    if (s.includes('%') || !s.trim()) return null;
+    const unc = /^[\\/]{2}/.test(s);
+    s = s.replace(/[\\/]+/g, '\\');
+    if (unc) s = `\\${s}`;
+    if (!win32.isAbsolute(s)) return null;
+    return win32.normalize(s);
+  };
+
+  const interpreterPath = expand2(quoted[0].text);
+  const scriptPath = expand2(quoted[1].text);
+  if (!interpreterPath || !scriptPath) return null;
+
+  // 4) Same trust rules as the npm shim: known interpreters, JS entry only,
+  //    and the interpreter must be a real executable file shape (.exe).
+  const interpBase = (win32.basename(interpreterPath).replace(/\.exe$/i, '')).toLowerCase();
+  if (!SHIM_INTERPRETERS.has(interpBase)) return null;
+  if (!/\.(exe|com)$/i.test(interpreterPath)) return null;
+  if (!SHIM_SCRIPT_EXT.test(scriptPath)) return null;
+
+  return { interpreterPath, scriptPath };
+}
+
 export class PtyManager {
   private sessions = new Map<string, PtySession>();
   private webContents: WebContents | null = null;
@@ -502,7 +604,38 @@ export class PtyManager {
       const st = statSync(shimPath);
       if (!st.isFile() || st.size > 8192) return null;
 
-      const target = parseNpmCmdShim(shimPath, readFileSync(shimPath, 'utf8'));
+      const content = readFileSync(shimPath, 'utf8');
+      // Follow a one-hop `call "<other.cmd>" %*` stub first: qwen-code's outer
+      // bin/qwen.cmd is exactly that — a 2-line forwarder to the real bundled
+      // launcher deeper in the install. The inner file is the one that carries
+      // the vars + exec line worth decoding. Unknown deeper shapes still → null.
+      const followCallStub = (text: string): string => {
+        const lines = text.split(/\r?\n/);
+        let callLine = null;
+        for (const l of lines) {
+          if (/\bcall\b/i.test(l) && l.includes('%*')) { callLine = l; break; }
+        }
+        if (!callLine) return text;
+        const q = [...callLine.matchAll(/"([^"]+)"/g)].map((m) => m[1]);
+        if (q.length !== 1) return text;           // more than the target → unknown shape
+        const target = win32.isAbsolute(q[0]) ? win32.normalize(q[0]) : null;
+        if (!target || !/\.(cmd|bat)$/i.test(target)) return text;
+        try {
+          const st2 = statSync(target);
+          if (!st2.isFile() || st2.size > 8192) return text;
+          return readFileSync(target, 'utf8');    // the inner launcher's content
+        } catch { return text; }                  // unreadable → try outer as-is
+      };
+      const target = parseNpmCmdShim(shimPath, content)
+        ?? (() => {
+          // Second family: bundled-node launchers (qwen-code's Windows install —
+          // a self-contained tree shipping its own node.exe + entry script).
+          // Same direct-spawn win: argv array, no cmd.exe, no newline truncation.
+          // The OUTER bin/qwen.cmd is a `call` stub for the inner launcher, so
+          // follow one hop before decoding.
+          const b = parseBundledNodeCmd(shimPath, followCallStub(content));
+          return b ? { interpreter: b.interpreterPath, scriptPath: b.scriptPath } : null;
+        })();
       if (!target) return null;
       // The shim can outlive the package it points at (a half-removed global
       // install). Falling back to cmd.exe then at least reproduces today's error.
@@ -513,6 +646,15 @@ export class PtyManager {
       // array is exactly what the cmd.exe route was standing in the way of.
       if (target.interpreter === null) {
         return { file: target.scriptPath, script: null };
+      }
+
+      // Bundled-node launchers hand us the interpreter as an ABSOLUTE path (the
+      // install's private node.exe — deliberately NOT resolved off PATH). It is
+      // already the exact binary; just confirm it is a real executable shape.
+      const il0 = target.interpreter.toLowerCase();
+      if (win32.isAbsolute(il0)) {
+        if (!il0.endsWith('.exe') && !il0.endsWith('.com')) return null;
+        return { file: target.interpreter, script: target.scriptPath };
       }
 
       const interp = this.resolveCommand(target.interpreter);

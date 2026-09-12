@@ -33,7 +33,10 @@ function run(cmd, args) {
 
 /** Require both native modules inside the real Electron runtime. */
 function verifyUnderElectron() {
-  const electronBin = path.join(ROOT, 'node_modules', 'electron', process.platform === 'win32' ? 'dist\\electron.exe' : 'dist/Electron.app/Contents/MacOS/Electron');
+  const distBin = process.platform === 'win32' ? 'dist\\electron.exe'
+    : process.platform === 'darwin' ? 'dist/Electron.app/Contents/MacOS/Electron'
+    : 'dist/electron';   // linux ships a lowercase bare binary
+  const electronBin = path.join(ROOT, 'node_modules', 'electron', distBin);
   if (!fs.existsSync(electronBin)) {
     console.error('[postinstall] electron binary not found — run npm install first');
     return false;

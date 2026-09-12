@@ -12,6 +12,24 @@
      installer (the unpacked exe needs no elevation).
 -->
 
+## v0.1.1 — the first mission's fix
+
+**Fixes agents spawning dead on Windows when using the qwen engine.**
+
+- The qwen-code Windows install ships as a self-contained tree (its own
+  node.exe + entry script behind a two-hop `.cmd` launcher) — not an npm
+  shim. DUM-E's old launcher decoder rejected it, and the cmd.exe fallback
+  truncated the hive protocol at its first newline: agents started
+  identity-less and exited while the floor still showed "idle".
+- DUM-E now decodes that launcher family and spawns the bundled node
+  directly, protocol intact (found live during the first real mission —
+  see docs/MISSION-LOG.md in the repo).
+
+**Install:** run the setup exe for a normal install (Start-menu shortcut +
+`dum-e://` deep links), or the portable exe to run without installing.
+Requirements: Windows 10+ x64 and internet on first use (DUM-E installs Node
+and the missing agent CLIs itself, via nodejs.org / npm).
+
 ## v0.1.0 — the first lab
 
 **The agent hub for our team — the Stark Workshop release.**
