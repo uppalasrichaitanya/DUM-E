@@ -396,7 +396,7 @@ export function useHive(config: HarnessConfig | null): void {
       const reg = await window.cth.hiveRegistry().catch(() => null);
       const godName = resolveGodName(reg?.agents?.[GOD_ID]?.name);
 
-      const godProvider = config.godProvider ?? 'qwen';
+      const godProvider = config.godProvider ?? 'opencode';
       const godModel = config.godModel;
       const command = buildSpawnCommand(config, godModel, godProvider);
       const [exe, ...args] = tokenizeCommand(command.trim());

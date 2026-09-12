@@ -95,7 +95,8 @@ export interface AgentProviderPreset {
   /** The model the GOD orchestrator ("Michael") defaults to when this provider
    *  powers it — surfaced as the picker default and the advisory "give Michael a
    *  longer-context, higher-capability model". `modelForRole` resolves the GOD
-   *  model as `config.godModel ?? preset.recommendedOrchestratorModel ?? MODEL_GOD`.
+   *  model as `config.godModel ?? preset.recommendedOrchestratorModel`
+   *  (undefined = the CLI's own default — no cross-namespace tier fallback).
    *  Advisory + user-overridable. */
   recommendedOrchestratorModel?: string;
   /** Whether the router may DELIVER inbox mail to this provider (vs bouncing it

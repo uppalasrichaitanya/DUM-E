@@ -98,9 +98,9 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
   const [home, setHome] = useState<string>('');
   const [repos, setRepos] = useState<string[]>([]);
   const [autoMode, setAutoMode] = useState<boolean>(true);
-  const [godProvider, setGodProvider] = useState<AgentProvider>('qwen');
+  const [godProvider, setGodProvider] = useState<AgentProvider>('opencode');
   const [godModel, setGodModel] = useState<string | undefined>(
-    providerPreset('qwen').recommendedOrchestratorModel
+    providerPreset('opencode').recommendedOrchestratorModel
   );
   const [error, setError] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);

@@ -205,11 +205,11 @@ export interface HarnessConfig {
   /** Default model for newly spawned agents (e.g. 'claude-sonnet-4-6[1m]'); unset = CLI default. */
   defaultModel?: string;
   /** Which provider powers the GOD orchestrator ("DUM-E"). The persona is
-   *  constant; only its engine is selectable. Default 'qwen'. Eligible providers
+   *  constant; only its engine is selectable. Default 'opencode'. Eligible providers
    *  are those that can receive inbox (claude/codex/qwen/opencode). */
   godProvider?: AgentProvider;
   /** The model GOD runs on. Unset falls back to the provider preset's
-   *  `recommendedOrchestratorModel`, then MODEL_GOD. Default 'qwen3-coder-plus'. */
+   *  `recommendedOrchestratorModel`, else the CLI default. Default unset. */
   godModel?: string;
   /** Per-server consent state for the default MCP bundle, keyed by catalog id.
    *  Seeded from MCP_CATALOG (safe-readonly ON, write/secret OFF); the user flips
@@ -420,8 +420,8 @@ const DEFAULTS: HarnessConfig = {
   autoMode: true,
   orchestratorMaySpawn: false,
   defaultCommand: 'qwen',
-  godProvider: 'qwen',
-  godModel: 'qwen3-coder-plus',
+  godProvider: 'opencode',
+  godModel: undefined,
   // Global default model for every agent that hasn't picked one explicitly — wins
   // over the role-based tiers (modelForRole) in the spawn handler. A per-agent
   // model choice still overrides it. Qwen-first roster: unset = engine default.
@@ -721,7 +721,6 @@ export function resetConfig(): HarnessConfig {
 
 /** Model ids by tier. Kept in sync with the model catalog in
  *  src/shared/modelCatalog.json. */
-const MODEL_GOD = 'qwen3-coder-plus';                  // orchestration — highest capability
 const MODEL_WORKER = 'qwen3-coder-plus';               // general execution
 const MODEL_HELPER = 'qwen3-coder';                   // narrow, cheap helpers
 
@@ -733,20 +732,23 @@ export interface RoleHint {
   capabilities?: string[];
 }
 
-/** Default model for an agent given its role (Lane A #6.4): Opus for the god,
- *  Haiku for narrow helpers (triage / routing / verification / formatting),
- *  Sonnet for general workers. Returns a model id (matching AGENT_MODELS) or
- *  undefined to fall back to the CLI default. This is only a DEFAULT — an
- *  explicit per-agent model selection always wins. */
+/** Default model for an agent given its role (Lane A #6.4): the provider
+ *  preset's recommended orchestrator model for the god, Haiku for narrow
+ *  helpers (triage / routing / verification / formatting), Sonnet for general
+ *  workers. Returns a model id (matching AGENT_MODELS) or undefined to fall
+ *  back to the CLI default. This is only a DEFAULT — an explicit per-agent
+ *  model selection always wins. */
 export function modelForRole(
   meta: RoleHint,
   config?: Pick<HarnessConfig, 'godProvider' | 'godModel'>
 ): string | undefined {
   if (meta.isGod) {
     // GOD engine is selectable: an explicit godModel wins, else the chosen
-    // provider's recommended orchestrator model, else the tier default.
-    const preset = providerPreset(config?.godProvider ?? 'qwen');
-    return config?.godModel ?? preset.recommendedOrchestratorModel ?? MODEL_GOD;
+    // provider's recommended orchestrator model, else the CLI default
+    // (undefined). No tier fallback: a cross-namespace id (e.g. a qwen slug
+    // on opencode) would not resolve and would kill the spawn.
+    const preset = providerPreset(config?.godProvider ?? 'opencode');
+    return config?.godModel ?? preset.recommendedOrchestratorModel;
   }
   const hay = `${meta.role ?? ''} ${(meta.capabilities ?? []).join(' ')}`.toLowerCase();
   if (/\b(triage|rout|verif|lint|format|summar|classif|label)/.test(hay)) return MODEL_HELPER;
