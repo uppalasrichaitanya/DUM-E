@@ -37,7 +37,7 @@ and the missing agent CLIs itself, via nodejs.org / npm).
 - The workshop floor: god's enclosed workshop, the central holo-table, the
   server-rack wall with observation windows, and the charging-bay room —
   generated in-repo with self-tests, rendered at 24px tiles with 24x48 robots.
-- Engine roster: Qwen Code (default) · Claude Code · Codex · OpenCode.
+- Engine roster: OpenCode (default) · Qwen Code · Claude Code · Codex.
 - The robot cast: DUM-E orchestrates H.E.R.B.I.E, Vision, Ultron, MODOK,
   VERONICA, EDITH, LYLA, Rover, Sentinel, Doombots, and Butterfingers.
 - Ambient life: rack LEDs blink, pylons shimmer, the charger steams, robots
