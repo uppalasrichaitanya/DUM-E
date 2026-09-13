@@ -22,7 +22,7 @@ Please **do not** open a public issue for security problems.
 
 - Use GitHub's **private vulnerability reporting**: the *Security → Report a
   vulnerability* tab on https://github.com/uppalasrichaitanya/DUM-E, **or**
-- Email **girichaitanya11@gmail.com** with a description, reproduction steps, and
+- Email **uppalasrichaitanya2007@gmail.com** with a description, reproduction steps, and
   impact.
 
 You can expect an acknowledgement within a few days. Once a fix is available we'll
