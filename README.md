@@ -1,183 +1,231 @@
 <div align="center">
 
-<img src="./src/renderer/src/brand/logo.png" alt="DUM-E — agent hub for the team" width="200">
+<img src="./src/renderer/src/brand/logo.png" alt="DUM-E logo" width="160">
 
 # DUM-E
 
-### The arm that runs the lab — an agent hub for our team
+**A local-first desktop orchestrator for AI coding agents.**
 
-An internal, Windows-first multi-agent harness. It spawns
-the coding-agent CLIs we actually use, gives each agent memory and a mailbox, and
-puts **DUM-E** — the orchestrator — in charge of the floor while everyone works.
-
-Wraps **Qwen Code** (the default), [Claude Code](https://claude.com/claude-code),
-the OpenAI **Codex** CLI, and **OpenCode** — with bring-your-own keys and local
-LLM support. Agents that message, route, and remember, coordinated by the
-orchestrator and visualized as robots at work on a shared lab floor.
+Run OpenCode, Qwen Code, Claude Code, and Codex side by side as one coordinated team —
+with shared memory, agent-to-agent messaging, a task board, and a live pixel-art
+workshop floor where you can watch them work.
 
 <p>
-  <em>Electron · React · TypeScript · Pixi.js · xterm.js · node-pty</em>
-</p>
-
-<p>
-  <img src="./docs/screenshots/dum-e-floor.png" alt="DUM-E — the Stark Workshop floor" width="820">
-</p>
-
-<p><sub>The Stark Workshop: god's enclosed workshop, the central holo-table, the server-rack
-wall with observation windows, and the charging-bay room — rack LEDs blink, the
-charger steams, robots bob and blink. Live capture, dev build.</sub></p>
-
-<p>
+  <a href="https://github.com/uppalasrichaitanya/DUM-E-site/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/uppalasrichaitanya/DUM-E-site?style=flat-square&label=release&color=266FD6&labelColor=04101E"></a>
+  <a href="https://github.com/uppalasrichaitanya/DUM-E/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/uppalasrichaitanya/DUM-E/ci.yml?branch=main&style=flat-square&label=CI&labelColor=04101E"></a>
   <a href="./LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-266FD6.svg?style=flat-square&labelColor=04101E"></a>
-  <a href="https://github.com/uppalasrichaitanya/DUM-E/releases"><img alt="Release" src="https://img.shields.io/badge/release-v0.1.0-266FD6.svg?style=flat-square&labelColor=04101E"></a>
-  <img alt="Platform: Windows + Linux" src="https://img.shields.io/badge/platform-Windows%20%2B%20Linux-266FD6.svg?style=flat-square&labelColor=04101E">
-  <img alt="Engines" src="https://img.shields.io/badge/engines-qwen%20%7C%20claude%20%7C%20codex%20%7C%20opencode-266FD6.svg?style=flat-square&labelColor=04101E">
+  <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%2010%2B-266FD6.svg?style=flat-square&labelColor=04101E">
 </p>
+
+<p>
+  <a href="https://dum-e-lab.com"><b>Website</b></a> ·
+  <a href="https://github.com/uppalasrichaitanya/DUM-E-site/releases/latest"><b>Download</b></a> ·
+  <a href="#quick-start"><b>Quick start</b></a> ·
+  <a href="#documentation"><b>Docs</b></a>
+</p>
+
+<img src="./docs/media/dum-e-demo.gif" alt="DUM-E workshop floor: robots walking between desks while the orchestrator dispatches work" width="860">
 
 </div>
 
 ---
 
-> [!NOTE]
-> **The team's own lab floor.** DUM-E takes the terminal-agent CLIs we run —
-> `qwen`, `claude`, `codex`, `opencode` — and turns them into a
-> self-coordinating team: each agent gets long-term memory, a mailbox, and a
-> dock on a 2D lab floor — and the orchestrator routes work between them while
-> you watch. It's the boss of the floor; you're still the boss of it.
+## Why DUM-E
 
-## Downloads
+Coding-agent CLIs are powerful on their own, but running several of them at once
+turns into a mess of terminal tabs, copy-pasted context, and no idea who is doing
+what. DUM-E turns them into a team:
 
-Grab a build from the [**releases page**](https://github.com/uppalasrichaitanya/DUM-E/releases/latest):
+- **One orchestrator, many workers.** DUM-E (the orchestrator) reads the board,
+  breaks work down, and delegates to worker agents — you stay in charge of it.
+- **Real terminals, not wrappers.** Every agent is a genuine CLI session in its own
+  PTY, so each engine keeps its full native feature set.
+- **Engine-agnostic.** Mix OpenCode, Qwen Code, Claude Code, and Codex on the same
+  floor, with your own API keys or a local LLM.
+- **You can see it.** Every agent is a robot on a 2D workshop floor — walking to
+  errands, carrying mail between desks, and showing live status.
 
-| Platform | File | Notes |
+## Features
+
+| | |
+|---|---|
+| 🖥️ **Live terminals** | Each agent runs in a real PTY (node-pty + xterm.js) with its own working directory. |
+| ✉️ **Agent-to-agent mail** | Outbox → inbox routing with reply tracking; the orchestrator triages replies as they land. |
+| 🧠 **Long-term memory** | Per-agent `memory.md` (condensable), optional semantic memory, and a shared knowledge graph. |
+| 📋 **Task board** | A shared kanban the orchestrator creates, assigns, and moves cards on. |
+| 🌳 **Git worktree isolation** | Optionally give each worker its own git worktree so parallel edits never collide. |
+| 🛡️ **Cost guardrails** | Cost caps, per-agent token caps, max-turn limits, and a circuit breaker that trips on runaway loops. |
+| ⏰ **Triggers** | Scheduled missions, webhooks, and Slack ingestion to start work without you. |
+| 🎙️ **Voice** | Talk to the orchestrator in real time, or dictate into the queue (opt-in, bring your own key). |
+| 🔗 **Shareable hires** | `dum-e://hire` deep links that spawn a ready-configured agent in one click. |
+| 🧩 **Built-in IDE & git view** | Monaco editor, commit graph, and diff view without leaving the app. |
+| 🌐 **Localized** | English, Arabic (RTL), and Simplified Chinese. |
+| 🔒 **Local-first** | No telemetry, no account. Your keys and code stay on your machine. |
+
+## Quick start
+
+1. **Download** the latest build from the
+   [releases page](https://github.com/uppalasrichaitanya/DUM-E-site/releases/latest):
+
+   | Platform | File | Notes |
+   |---|---|---|
+   | Windows 10+ (x64) | `DUM-E-<version>-win-x64-setup.exe` | Per-user installer, no admin needed. Registers `dum-e://` links. |
+   | Windows 10+ (x64) | `DUM-E-<version>-win-x64-portable.exe` | Single file, no install. |
+   | Linux (x64) | `DUM-E-<version>-linux-x86_64.AppImage` | Coming soon. |
+
+   > Builds are currently **unsigned**. On first launch, Windows SmartScreen will
+   > show *"Windows protected your PC"* — click **More info → Run anyway**.
+
+2. **Launch DUM-E.** The onboarding wizard checks prerequisites and installs Node.js
+   and any missing agent CLI for you.
+
+3. **Pick an engine and connect it.** Log in to the CLI, or paste an API key /
+   local-LLM endpoint under **Settings → Agents & Models**.
+
+4. **Give DUM-E a mission.** Type into the Command Center — the orchestrator plans
+   the work, spawns or reuses workers, and posts cards to the task board.
+
+## Supported engines
+
+| Engine | Install (DUM-E can do this for you) | How DUM-E integrates |
 |---|---|---|
-| **Windows** | `DUM-E-0.1.0-win-x64-setup.exe` | Standard installer (per-user, no admin) |
-| **Windows** | `DUM-E-0.1.0-win-x64-portable.exe` | Single-file portable — no install, no registry |
-| **Linux** | `DUM-E-0.1.0-linux-x86_64.AppImage` | chmod +x and run |
+| **OpenCode** *(default)* | `npm install -g opencode-ai@latest` | Bundled plugin emits lifecycle events |
+| **Qwen Code** | `npm install -g @qwen-code/qwen-code@latest` | Loopback proxy synthesizes lifecycle events |
+| **Claude Code** | `npm install -g @anthropic-ai/claude-code` | Native hooks |
+| **Codex** | `npm install -g @openai/codex` | Hook shim in an isolated `CODEX_HOME` (your global config is never touched) |
 
-All builds are **unsigned** — Windows SmartScreen and Linux desktop environments
-will ask you to trust the app the first time. Have at least one engine CLI
-installed and logged in (`qwen` is the default; Settings → AI Engines wires
-keys and local-LLM endpoints).
+Local models work through any OpenAI-compatible endpoint (for example Ollama at
+`http://localhost:11434/v1`).
 
-## Contents
+## Screenshots
 
-- [Downloads](#downloads)
-- [What it is](#what-it-is)
-- [How it works](#how-it-works)
-- [The cast](#the-cast)
-- [Features](#features)
-- [Getting started](#getting-started)
-- [Architecture](#architecture)
-- [Why it looks like this](#why-it-looks-like-this)
-
-## What it is
-
-DUM-E is a desktop app (Windows-first) that runs a **hive of coding agents**:
-
-- **Agents are real CLI sessions** — Qwen Code, Claude Code, Codex, or OpenCode
-  running in real terminals (node-pty), each with its own working directory.
-- **Each agent has memory** (`memory.md`, condensable), **a mailbox** (JSON file
-  messages routed every 1.5s), and **a task board** shared with the whole floor.
-- **The orchestrator ("god")** — DUM-E by default — spawns first, reads the
-  board, and delegates. It can ask for humans only when it's genuinely stuck.
-- **A 2D lab floor** (Pixi.js) shows every agent as a robot at its dock,
-  walking to errands, talking over coffee, and shipping envelopes between
-  desks when messages route.
+<table>
+  <tr>
+    <td width="50%"><img src="./docs/media/command-center-terminal.png" alt="Command Center with the orchestrator's live terminal"><br><sub><b>Command Center</b> — the orchestrator's live terminal and dispatch log</sub></td>
+    <td width="50%"><img src="./docs/media/tasks-kanban.png" alt="Task board with TODO, DOING, BLOCKED and DONE columns"><br><sub><b>Task board</b> — cards created and assigned by the orchestrator</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="./docs/media/memory-graph.png" alt="Message graph between agents"><br><sub><b>Message graph</b> — who asked whom, and what</sub></td>
+    <td width="50%"><img src="./docs/media/settings-engines.png" alt="Settings: API keys and local endpoints per engine"><br><sub><b>Engines & keys</b> — bring your own key or a local LLM</sub></td>
+  </tr>
+</table>
 
 ## How it works
 
 ```
-you ──> orchestrator (DUM-E) ──> workers (qwen/claude/codex/opencode)
+ you ──► DUM-E (orchestrator) ──► workers: opencode · qwen · claude · codex
               │
-              ├── memory.md      long-term notes, one per agent
-              ├── inbox/outbox   file-based mail, routed every 1.5s
-              ├── tasks.json     the shared kanban
-              └── fleet.json     live tokens/cost/status snapshot
+              ├── memory.md    long-term notes, one per agent
+              ├── inbox/outbox file-based mail, routed every 1.5 s
+              ├── tasks.json   the shared kanban
+              └── fleet.json   live tokens / cost / status snapshot
 ```
 
-Engines without Claude-style hooks are bridged: **codex** via a hook-shim in an
-isolated `CODEX_HOME`, **qwen** via a loopback proxy that synthesizes the
-lifecycle events, **opencode** via a bundled plugin. The circuit breaker, cost
-caps, and per-agent token caps guard the floor.
+Each agent is spawned in a PTY with an injected protocol prompt that tells it who it
+is, who else is on the floor, and how to read its inbox. A local hook server
+receives lifecycle events (turn start/stop, tool use, notifications) from every
+engine, normalizes them, and drives agent status, inbox draining, cost tracking,
+and the floor animation. Engines without Claude-style hooks are bridged by a shim,
+plugin, or proxy so they all behave the same to the orchestrator.
 
 ## The cast
 
-The floor's robot roster (Marvel-inspired names, internal use):
+Every agent on the floor is a robot with its own silhouette and role:
 
 | Robot | Role |
 |---|---|
-| **DUM-E** | the orchestrator — runs the floor |
-| **H.E.R.B.I.E** | researcher / librarian (memory + knowledge graph) |
-| **Vision** | planner / architect |
-| **Ultron** | relentless heavy builder |
-| **Ultron-bot** | ephemeral parallel workers |
-| **MODOK** | analyst (telemetry, cost, reports) |
-| **VERONICA** | rescue agent (broken builds) |
-| **EDITH** | integrations + monitoring (Slack, webhooks) |
-| **LYLA** | scheduler (missions, triggers) |
-| **Rover** | web explorer · **Sentinel** / **Doombots** · general workers · **Butterfingers** sandbox tinkerer |
+| **DUM-E** | Orchestrator — runs the floor |
+| **H.E.R.B.I.E** | Researcher / librarian (memory + knowledge graph) |
+| **Vision** | Planner / architect |
+| **Ultron** | Heavy builder |
+| **Ultron-bot** | Ephemeral parallel workers |
+| **MODOK** | Analyst — telemetry, cost, reports |
+| **VERONICA** | Rescue — fixes broken builds |
+| **EDITH** | Integrations and monitoring (Slack, webhooks) |
+| **LYLA** | Scheduler — missions and triggers |
+| **Rover** · **Sentinel** · **Doombots** · **Butterfingers** | Web explorer, general workers, sandbox tinkerer |
 
-## Features
+## Build from source
 
-- **Real terminals** — every agent is a live CLI session, not a wrapper.
-- **Agent-to-agent mail** — outbox→inbox routing with reply tracking.
-- **Long-term memory** — per-agent `memory.md` + optional semantic memory.
-- **Task kanban** — the orchestrator creates, assigns, and moves cards.
-- **Cost guardrails** — cost caps, per-agent token caps, circuit breaker.
-- **Triggers** — scheduled missions, webhooks, Slack ingestion.
-- **Voice control** — talk to the orchestrator (OpenAI realtime, BYOK).
-- **Shareable hires** — `dum-e://hire` deep links for ready-to-spawn agents.
-- **Procedural art** — the cast, tilesets, and icons are all generated in-repo
-  (no third-party assets).
-
-## Getting started
+**Requirements:** Node.js 20+, Git, and on Windows the Visual Studio Build Tools
+*"Desktop development with C++"* workload (needed to compile `better-sqlite3`).
 
 ```bash
-npm install     # rebuilds better-sqlite3 for Electron; node-pty rides prebuilds
-npm run dev     # electron-vite dev
+git clone https://github.com/uppalasrichaitanya/DUM-E.git
+cd DUM-E
+npm install          # rebuilds better-sqlite3 for Electron; node-pty uses prebuilds
+npm run dev          # start the app with hot reload
 ```
 
-**Windows build tools:** `npm install` needs the VS Build Tools "Desktop
-development with C++" workload (better-sqlite3 compiles from source). node-pty
-1.1.0 ships N-API prebuilds and does not need to compile — if a machine lacks
-the Spectre-mitigated C++ libraries, only better-sqlite3's build is affected
-and `tools/postinstall.cjs` reports it clearly.
+| Command | What it does |
+|---|---|
+| `npm run dev` | Run the app in development mode |
+| `npm run typecheck` | Type-check main and renderer |
+| `npm test` | Run the test suite (`node --test`, 640+ tests) |
+| `npm run dist:win` | Package the Windows installer + portable exe |
+| `npm run dist:linux` | Package the Linux AppImage |
 
-Have at least one engine CLI installed and logged in (`qwen` is the default;
-see Settings → AI Engines for keys and local-LLM base URLs).
-
-```bash
-npm run typecheck   # both tsconfigs
-npm test            # node --test test/*.test.cjs
-npm run dist:win    # packaged Windows build (NSIS + portable)
-```
+Tagging a `v*` release runs [`.github/workflows/release.yml`](./.github/workflows/release.yml),
+which builds Windows and Linux artifacts with SHA-256 checksums.
 
 ## Architecture
 
-- `src/main` — Electron main: PTY manager, hive coordination (mailboxes,
-  registry, tasks, router), hook server, circuit breaker, telemetry (OTLP),
-  triggers (Slack/webhooks/missions), integrations broker.
-- `src/renderer` — React + zustand + Pixi.js: the lab floor, terminal pool,
-  command center, settings, onboarding.
-- `src/shared` — provider presets, provider automation, config schema, hire
-  manifests — the seam between main and renderer.
-- `src/preload` — the `window.cth` IPC bridge.
+**Stack:** Electron · React · TypeScript · Zustand · Pixi.js · xterm.js · node-pty · better-sqlite3
 
-Key docs: [SPEC.md](./SPEC.md), [HIVE.md](./HIVE.md), [DESIGN.md](./DESIGN.md),
-[RELEASE.md](./RELEASE.md).
+```
+src/
+├── main/       Electron main process: PTY manager, hive coordination (mailboxes,
+│               registry, tasks, router), hook server, circuit breaker, git/worktrees,
+│               triggers (Slack, webhooks, missions), MCP wiring
+├── renderer/   React UI: workshop floor (Pixi.js), terminal pool, Command Center,
+│               IDE, settings, onboarding
+├── shared/     Engine presets, config schema, hire manifests — the main/renderer seam
+└── preload/    The typed IPC bridge exposed to the renderer
+```
 
-## Why it looks like this
+### Engineering highlights
 
-Every visual asset — the robot cast, the lab floor tilesets, the icons, the
-brand mark — is **generated by code in this repo** (`tools/make-logo.cjs`,
-`tools/make-lab-tilesets.cjs`, `portraitArt.ts`). The craft rules that govern
-all of it are codified in [docs/ART-TECHNIQUES.md](./docs/ART-TECHNIQUES.md):
-one top-left key light, 5-shade hue-shifted ramps, selective outlining,
-dithering, bevels, an emissive budget. Nothing is hand-drawn, nothing is
-third-party — which means every pixel is fixable in code, and the whole look
-regenerates deterministically.
+- **Windows launcher decoding.** npm and Qwen Code install CLIs behind `.cmd`
+  launchers that `cmd.exe` mangles (multi-line prompts get cut at the first newline).
+  DUM-E parses those launchers and spawns the real `node` / `.exe` target directly,
+  so the full protocol prompt arrives intact.
+- **Engine bridging.** Four CLIs with four different lifecycle models are normalized
+  into one event contract via native hooks, a hook shim, a plugin, and a loopback
+  proxy.
+- **Procedural art.** The robots, tilesets, icons, and logo are all generated by code
+  in this repo, following a written art bible
+  ([docs/ART-TECHNIQUES.md](./docs/ART-TECHNIQUES.md)). The workshop map is produced by a
+  generator that uses BFS to prove every desk and errand spot is reachable before
+  the map is written.
+- **Tested.** 640+ `node --test` tests cover the hive protocol, the circuit breaker,
+  cost accounting, launcher parsing, i18n, and more.
 
-The Stark Workshop floor itself is *authored by a generator with self-tests*
-(`tools/make-dum-lab-map.cjs`): BFS proves every desk, charging bay, and errand
-stand is reachable before the map is ever committed.
+## Documentation
+
+| Doc | About |
+|---|---|
+| [SPEC.md](./SPEC.md) | Product spec |
+| [HIVE.md](./HIVE.md) | Multi-agent protocol: mail, tasks, roster |
+| [MEMORY_GRAPH_SPEC.md](./MEMORY_GRAPH_SPEC.md) | Memory and knowledge graph |
+| [DESIGN.md](./DESIGN.md) | UI and brand system |
+| [docs/message-queue.md](./docs/message-queue.md) | Message queue contract |
+| [docs/MISSION-LOG.md](./docs/MISSION-LOG.md) | Log of the first real mission |
+| [CHANGELOG.md](./CHANGELOG.md) | Release history |
+
+## Roadmap
+
+- [ ] Verified Linux AppImage release
+- [ ] Re-enable in-app auto-update
+- [ ] Code-signed Windows builds
+- [ ] winget / Scoop packages
+- [ ] macOS build
+
+## Contributing
+
+Issues and pull requests are welcome — see [CONTRIBUTING.md](./CONTRIBUTING.md) and
+the [Code of Conduct](./CODE_OF_CONDUCT.md). To report a security problem, follow
+[SECURITY.md](./SECURITY.md).
+
+## License
+
+[MIT](./LICENSE) © Sri Chaitanya Uppala

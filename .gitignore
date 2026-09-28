@@ -22,3 +22,6 @@ build/AuthKey_*.p8
 
 # staging output for the Pages deploy (web/tools/stage-site.cjs) — build artifact
 _site/
+
+# local agent scratch state
+.qwen/
