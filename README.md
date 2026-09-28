@@ -147,7 +147,7 @@ Every agent on the floor is a robot with its own silhouette and role:
 
 ## Build from source
 
-**Requirements:** Node.js 20+, Git, and on Windows the Visual Studio Build Tools
+**Requirements:** Node.js 22+, Git, and on Windows the Visual Studio Build Tools
 *"Desktop development with C++"* workload (needed to compile `better-sqlite3`).
 
 ```bash
